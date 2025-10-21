@@ -1,183 +1,187 @@
 /* =======================================
-   BELTAH LAB - CYBER HACKING INTERFACE
-   style.css
+   BELTAH CYBERLAB - Africa Simulation UI
    ======================================= */
-
-/* --- Root Variables & Global Theme --- */
 :root {
-  --bg-color: #000000;
-  --accent-color: #00ff41;
-  --secondary-color: #ffcc00;
-  --font-family: 'Courier New', monospace;
+  --bg: #000;
+  --neon: #00ff41;
+  --accent: #ffcc00;
+  --muted: rgba(0,255,65,0.18);
+  --font: 'Courier New', monospace;
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
+/* Base layout */
 body {
-  background-color: var(--bg-color);
-  color: var(--accent-color);
-  font-family: var(--font-family);
+  background: var(--bg);
+  color: var(--neon);
+  font-family: var(--font);
   height: 100vh;
-  display: grid;
-  place-items: center;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 
-/* --- CRT + Matrix Monitor Effect --- */
-body::before {
-  content: "";
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: repeating-linear-gradient(
-    to bottom,
-    rgba(0, 255, 65, 0.05) 0px,
-    rgba(0, 255, 65, 0.05) 1px,
-    transparent 1px,
-    transparent 2px
-  );
-  pointer-events: none;
-  z-index: 100;
+/* CRT overlay */
+#scanlines, #vignette {
+  position: fixed; inset: 0; pointer-events: none; z-index: 1000;
+}
+#scanlines {
+  opacity: 0.05;
+  background: repeating-linear-gradient(transparent, transparent 2px, rgba(0,255,65,0.1) 2px, rgba(0,255,65,0.1) 4px);
+}
+#vignette {
+  background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.6) 100%);
 }
 
-/* --- Loading Overlay --- */
-#loading-overlay {
-  position: fixed;
-  inset: 0;
-  background-color: black;
-  color: var(--accent-color);
-  font-family: var(--font-family);
+/* Header */
+.top-bar {
   display: flex;
   align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  z-index: 999;
-  transition: opacity 1s ease-in-out;
+  gap: 10px;
+  background: rgba(0, 10, 0, 0.6);
+  padding: 12px 20px;
+  box-shadow: 0 0 10px var(--neon);
+}
+.brand {
+  color: var(--accent);
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+.subtitle {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.controls {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+.btn {
+  background: linear-gradient(90deg,#00b37a,#00884f);
+  color: black;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.btn.danger {
+  background: #ff3333;
+  color: white;
 }
 
-#loading-overlay.hidden {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.loading-text {
-  font-size: 1.5rem;
-  letter-spacing: 2px;
-  animation: flicker 1.5s infinite;
-}
-
-/* --- Grid Layout for Main Panels --- */
-#main-console {
+/* Main grid */
+.wrap {
   display: grid;
-  width: 100%;
-  height: 100%;
+  flex: 1;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
-  gap: 8px;
-  padding: 8px;
+  gap: 12px;
+  padding: 12px;
 }
 
+/* Panels */
 .panel {
-  border: 1px solid var(--accent-color);
-  padding: 10px;
-  background-color: rgba(0, 0, 0, 0.8);
-  box-shadow: 0 0 15px var(--accent-color);
-  overflow: hidden;
-  position: relative;
+  border: 1px solid rgba(0,255,65,0.12);
+  border-radius: 10px;
+  background: rgba(0,10,6,0.7);
+  box-shadow: 0 0 10px rgba(0,255,65,0.1);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
 }
-
-/* --- Panel Titles --- */
 .panel-title {
-  color: var(--secondary-color);
-  font-size: 1.1rem;
-  font-weight: bold;
-  margin-bottom: 6px;
-  text-shadow: 0 0 5px var(--secondary-color);
+  font-weight: 700;
+  color: var(--accent);
+  text-shadow: 0 0 5px var(--accent);
+  margin-bottom: 10px;
 }
 
-/* --- Terminal Console --- */
+/* Terminal */
 #terminal {
-  background-color: rgba(10, 20, 10, 0.9);
-  color: var(--accent-color);
-  font-family: var(--font-family);
-  height: 100%;
+  flex: 1;
+  background: rgba(0,0,0,0.2);
+  border-radius: 6px;
+  padding: 10px;
   overflow-y: auto;
-  padding: 8px;
+  font-size: 13px;
 }
-
-#terminal-input {
-  width: 100%;
-  background: transparent;
+#cmd {
   border: none;
-  outline: none;
-  color: var(--accent-color);
-  font-family: inherit;
-  font-size: 1rem;
-  caret-color: var(--secondary-color);
+  background: rgba(0,0,0,0.4);
+  color: var(--neon);
+  padding: 8px;
+  border-radius: 6px;
+  font-family: var(--font);
 }
 
-.blink-cursor {
-  animation: blink 1s infinite;
-}
-
-/* --- Network Visualization --- */
-#network-visual {
+/* Map */
+#map {
+  flex: 1;
   display: flex;
   justify-content: center;
   align-items: center;
 }
-
+.network {
+  width: 100%;
+  height: 100%;
+}
 .node {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--accent-color);
-  box-shadow: 0 0 10px var(--accent-color);
-  position: absolute;
-  animation: blink 2s infinite alternate;
+  fill: url(#pulse);
+  cursor: pointer;
+  animation: pulse 2s infinite;
+}
+.node:hover {
+  fill: #00ffcc;
+}
+.link {
+  stroke: rgba(0,255,120,0.2);
+  stroke-width: 2;
+}
+.node-label {
+  fill: var(--neon);
+  font-size: 12px;
 }
 
-/* --- Log Feed --- */
-#log-feed {
-  font-size: 0.85rem;
-  overflow-y: scroll;
+/* Stats */
+.stat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 6px 0;
+}
+.bar {
+  flex: 1;
+  background: rgba(255,255,255,0.05);
+  height: 10px;
+  border-radius: 8px;
+  margin: 0 10px;
+  overflow: hidden;
+}
+.bar i {
+  display: block;
   height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg,#00ff88,#00b384);
+  transition: width 0.3s;
+}
+
+/* Log Feed */
+#feed {
+  flex: 1;
+  background: rgba(0,0,0,0.2);
+  padding: 10px;
+  font-size: 13px;
+  overflow-y: auto;
   line-height: 1.3;
 }
-
-/* --- Animations --- */
-@keyframes flicker {
-  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
-    opacity: 1;
-  }
-  20%, 24%, 55% {
-    opacity: 0.4;
-  }
+#feed .time {
+  color: var(--muted);
+  margin-right: 6px;
 }
 
-@keyframes blink {
-  0%, 50% {
-    opacity: 1;
-  }
-  51%, 100% {
-    opacity: 0.2;
-  }
-}
-
-/* --- Scrollbar Customization --- */
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-thumb {
-  background-color: var(--accent-color);
-  border-radius: 10px;
-}
-::-webkit-scrollbar-track {
-  background-color: #001100;
+/* Animations */
+@keyframes pulse {
+  0%, 100% { r: 12; opacity: 0.8; }
+  50% { r: 15; opacity: 1; }
 }
