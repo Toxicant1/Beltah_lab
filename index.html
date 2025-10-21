@@ -1,467 +1,380 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Beltah Lab — Realistic Cinematic Demo</title>
-<style>
-  :root{--bg:#020204;--neon:#33ff88;--muted:#9fe8c8}
-  *{box-sizing:border-box}
-  html,body{height:100%;margin:0;font-family:Consolas,Monaco,monospace;background:var(--bg);color:var(--neon);-webkit-font-smoothing:antialiased}
-  /* MATRIX container (z-index 0) will be created by script */
-  /* layout */
-  .wrap{position:relative;z-index:2;display:flex;flex-direction:column;height:100vh;padding:12px;gap:12px}
-  header{display:flex;align-items:center;justify-content:space-between;gap:12px}
-  .brand{font-weight:900;font-size:20px}
-  .subtitle{color:var(--muted);font-size:13px}
-  .controls{display:flex;gap:8px;align-items:center}
-  button.btn{background:linear-gradient(90deg,#16b87a,#018a58);color:#001915;border:none;padding:8px 12px;border-radius:8px;font-weight:800;cursor:pointer}
-  button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--neon);padding:8px;border-radius:8px}
-  /* grid */
-  .grid{flex:1;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:12px}
-  .panel{background:linear-gradient(180deg, rgba(0,0,0,0.5), rgba(6,6,6,0.85));border-radius:10px;padding:12px;border:1px solid rgba(60,255,150,0.04);box-shadow:0 12px 30px rgba(0,0,0,0.6);position:relative;overflow:hidden}
-  .panel .title{font-weight:800;color:#dfffe8;margin-bottom:8px}
-  .small{font-size:12px;color:var(--muted)}
-  /* terminal */
-  #terminal{background:linear-gradient(180deg,#02120a,#04160f);border-radius:6px;padding:10px;height:100%;overflow:auto;color:#bfffd4;font-size:13px}
-  .cmdRow{display:flex;gap:8px;margin-top:8px}
-  input.cmd{flex:1;padding:8px;border-radius:8px;border:1px solid rgba(80,255,160,0.06);background:transparent;color:#dfffe8}
-  /* earth */
-  .earthWrap{width:100%;height:100%;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,0.02);background:#000}
-  iframe#earthEmbed{width:100%;height:100%;border:0;display:block}
-  canvas#globeFallback{display:none;position:absolute;inset:0;z-index:4}
-  .earthFallback{position:absolute;inset:0;display:none;align-items:center;justify-content:center;color:var(--muted);font-size:13px;z-index:5}
-  /* dish */
-  #dishMonitor{display:flex;gap:12px;align-items:flex-start;height:100%}
-  #radar{width:260px;height:260px;border-radius:8px;background:linear-gradient(180deg,#00120a,#02120f);border:1px solid rgba(80,255,150,0.04)}
-  #dishList{flex:1;overflow:auto;padding:6px;height:100%}
-  /* device panel */
-  #devicePanel{font-family:monospace;background:linear-gradient(180deg,#02120a,#04160f);border-radius:8px;padding:10px;height:100%;display:flex;flex-direction:column;gap:8px}
-  #devicePanel .infoRow{display:flex;justify-content:space-between;align-items:center}
-  /* overlay */
-  .overlay{position:fixed;inset:0;display:none;place-items:center;background:linear-gradient(0deg, rgba(0,0,0,0.7), rgba(0,0,0,0.4));z-index:60}
-  .overlayBox{background:linear-gradient(180deg,#02130a,#062417);padding:18px;border-radius:10px;color:#eaffec;border:1px solid rgba(0,255,140,0.06)}
-  /* matrix control */
-  #matrixControls {position:fixed; right:12px; bottom:12px; z-index:70; pointer-events:auto; display:flex; gap:8px; align-items:center; font-family:monospace;}
-  .matrixToggleBtn { background:rgba(0,0,0,0.5); color:#bfffe0; border:1px solid rgba(60,255,150,0.06); padding:6px 8px; border-radius:8px; cursor:pointer; font-weight:800; font-size:12px; }
-  .matrixHint { color:rgba(160,255,190,0.9); font-size:12px; padding:6px 8px; border-radius:8px; background:rgba(0,0,0,0.35) }
-  @media(max-width:900px){ .grid{grid-template-columns:1fr;grid-template-rows:repeat(4,260px)} header{flex-direction:column;align-items:flex-start} }
-</style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Beltah Lab — Front-End Hacking Lab Demo</title>
+
+<link rel="stylesheet" href="CSS/style.css">
+
 </head>
 <body>
-  <!-- Matrix control UI -->
-  <div id="matrixControls" aria-hidden="false">
-    <div class="matrixHint">Matrix: <span id="matrixStatus">ON</span></div>
-    <button class="matrixToggleBtn" id="matrixToggleBtn">Toggle Matrix (Ctrl+Shift+M)</button>
+  <div id="scanlines" aria-hidden="true"></div>
+  <div id="vignette" aria-hidden="true"></div>
+
+  <div id="loading-overlay" role="status">
+    <div class="loader-title neon">SYSTEM INITIALIZING</div>
+    <div class="loader-sub">BELTAH LAB — CINEMATIC FRONTEND DEMO</div>
+    <div class="progress-shell" aria-hidden="true"><div class="progress-bar" id="loadBar"></div></div>
+    <div class="scramble" id="scrambleText">Boot sequence: [..........]</div>
   </div>
 
-  <div class="wrap">
-    <header>
-      <div>
-        <div class="brand">BELTAH LAB — CINEMATIC COMMAND</div>
-        <div class="subtitle">Demo — Safe & Simulated</div>
-      </div>
+  <main class="app" id="app" style="display:none">
+    <section class="panel status" aria-labelledby="statusTitle">
+      <div class="title" id="statusTitle">System Status</div>
+      <div id="statusBody">
+        <div class="stat-row"><div class="stat-left">Time</div><div class="stat-right" id="time-display">--:--:--</div></div>
 
-      <div class="controls">
-        <button class="btn" id="playSeq">▶ Play Sequence</button>
-        <button class="ghost" id="present">Presentation</button>
-        <button class="ghost" id="report">Download Report</button>
-      </div>
-    </header>
+        <div class="stat-row"><div class="stat-left">CPU Load</div><div class="stat-right" id="cpuPercent">0%</div></div>
+        <div class="meter" aria-hidden="true"><div class="fill" id="cpuBar" style="width:0%"></div></div>
 
-    <div class="grid">
-      <!-- TOP LEFT: TERMINAL -->
-      <div class="panel" id="panelTerminal">
-        <div class="title">Terminal</div>
-        <div id="terminal"></div>
-        <div class="cmdRow">
-          <input id="cmdInput" class="cmd" placeholder="Type a fake command (help)"/>
-          <button class="btn" id="cmdRun">RUN</button>
+        <div style="height:8px"></div>
+
+        <div class="stat-row"><div class="stat-left">Memory</div><div class="stat-right" id="memPercent">0%</div></div>
+        <div class="meter"><div class="fill" id="memBar" style="width:0%"></div></div>
+
+        <div style="height:12px"></div>
+
+        <div class="stat-row"><div class="stat-left">Network Health</div><div class="stat-right" id="netHealth">Stable</div></div>
+        <div class="meter"><div class="fill" id="netBar" style="width:62%"></div></div>
+
+        <div style="height:12px"></div>
+        <div class="small">Simulated metrics — visual only.</div>
+      </div>
+    </section>
+
+    <section class="panel terminal" aria-labelledby="terminalTitle">
+      <div class="title" id="terminalTitle">Interactive Terminal</div>
+      <div id="terminal-box" aria-live="polite"></div>
+      <input id="term-input" aria-label="Terminal input" autocomplete="off" placeholder="Type a simulated command and press Enter — e.g. scan-continents" />
+      <div style="height:6px"></div>
+      <div class="small">Commands are simulated. Type <b>help</b> to see fake commands.</div>
+    </section>
+
+    <section class="panel network" aria-labelledby="networkTitle">
+      <div class="title" id="networkTitle">Africa Network Grid</div>
+      <div id="map-container">
+        <div id="africa-map" role="img" aria-label="Africa activity map">
+          <svg id="africa-svg" viewBox="0 0 800 800" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%">
+            <rect width="100%" height="100%" fill="transparent"></rect>
+            <g id="countries" transform="translate(60,40) scale(0.75)">
+              <path class="country" id="ng" data-name="Nigeria" d="M420 230 L440 240 L450 260 L460 300 L450 330 L420 350 L400 330 L390 300 L397 280 Z"></path>
+              <path class="country" id="eg" data-name="Egypt" d="M500 110 L570 110 L590 130 L580 150 L540 150 L520 130 Z"></path>
+              <path class="country" id="za" data-name="South Africa" d="M430 520 L470 525 L480 550 L460 570 L430 560 L410 540 Z"></path>
+              <path class="country" id="ke" data-name="Kenya" d="M520 320 L540 330 L550 350 L540 360 L520 350 L510 340 Z"></path>
+              <path class="country" id="ci" data-name="Côte d'Ivoire" d="M340 270 L360 280 L370 300 L345 310 L330 295 Z"></path>
+              <path class="country" id="ma" data-name="Morocco" d="M280 90 L300 85 L320 110 L300 120 L280 110 Z"></path>
+              <path class="country" id="dz" data-name="Algeria" d="M320 150 L360 145 L380 170 L355 190 L320 180 Z"></path>
+              <circle class="ping" id="ping1" cx="0" cy="0" r="6"></circle>
+            </g>
+          </svg>
         </div>
+        <div style="height:8px"></div>
+        <div class="small">Hover a country to show a simulated status. Click to trigger a ping event.</div>
       </div>
+    </section>
 
-      <!-- TOP RIGHT: GOOGLE EARTH (iframe) with fallback globe -->
-      <div class="panel" id="panelEarth">
-        <div class="title">Global Network (Google Earth)</div>
-        <div class="earthWrap">
-          <iframe id="earthEmbed" src="https://earth.google.com/web/" title="Google Earth"></iframe>
-          <canvas id="globeFallback"></canvas>
-          <div class="earthFallback" id="earthFallbackMsg" style="display:none">
-            <div>
-              <div style="font-weight:800">Google Earth cannot be embedded here.</div>
-              <div style="margin-top:6px" class="small">Falling back to animated globe view (visual only).</div>
-            </div>
-          </div>
-        </div>
+    <section class="panel matrix" aria-labelledby="matrixTitle">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="title" id="matrixTitle">Live Log Feed</div>
+        <div id="clock" aria-live="polite">--:--:--</div>
       </div>
-
-      <!-- BOTTOM LEFT: DISH ARRAY MONITOR -->
-      <div class="panel" id="panelDish">
-        <div class="title">Dish Array Monitor</div>
-        <div id="dishMonitor">
-          <canvas id="radar" width="260" height="260"></canvas>
-          <div id="dishList">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-              <div style="font-weight:800">Dishes</div>
-              <div class="small">Active: <span id="dishCount">6</span></div>
-            </div>
-            <div id="dishItems"></div>
-            <div style="font-weight:700;margin-top:8px;color:#dfffe8">Logs</div>
-            <div id="dishLogs" style="background:rgba(0,0,0,0.06);border-radius:6px;padding:8px;height:100px;overflow:auto;color:#bfffd4;font-size:13px"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- BOTTOM RIGHT: DEVICE INFO -->
-      <div class="panel" id="panelDevice">
-        <div class="title">Device Info (visitor)</div>
-        <div id="devicePanel">
-          <div class="infoRow"><div>Device:</div><div id="dp_device">Detecting…</div></div>
-          <div class="infoRow"><div>Battery:</div><div id="dp_batt">Detecting…</div></div>
-          <div class="infoRow"><div>Connection:</div><div id="dp_conn">Detecting…</div></div>
-          <div style="height:8px"></div>
-          <div class="small">Privacy: detection runs locally in the browser — nothing is sent anywhere.</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- cinematic overlay used during sequences -->
-  <div class="overlay" id="overlay" aria-hidden="true">
-    <div class="overlayBox">
-      <div id="overlayTitle" style="font-weight:800;font-size:18px">OPERATION</div>
-      <div id="overlayMsg" style="margin-top:8px;color:#bfffe8">Initializing…</div>
-      <div style="height:12px;margin-top:12px;background:rgba(255,255,255,0.04);border-radius:8px;overflow:hidden">
-        <div id="overlayFill" style="height:100%;width:0;background:linear-gradient(90deg,#39ff9b,#05b07a);transition:width .2s linear"></div>
-      </div>
-    </div>
-  </div>
+      <div id="log-feed" role="log" aria-live="polite"></div>
+    </section>
+  </main>
 
 <script>
-/* ==================== Enhanced Matrix (multi-layer) ==================== */
+/* ===================== Loading overlay behavior ===================== */
 (function(){
-  // create wrapper canvases programmatically to ensure they're behind everything (z-index 0)
-  const existing = document.getElementById('matrixWrapGlobal');
-  if(!existing){
-    const wrap = document.createElement('div'); wrap.id = 'matrixWrapGlobal';
-    wrap.style.position='fixed'; wrap.style.inset='0'; wrap.style.zIndex='0'; wrap.style.pointerEvents='none';
-    // three layers
-    const base = document.createElement('canvas'); base.id='matrixBase'; base.style.position='absolute'; base.style.inset='0';
-    const heads = document.createElement('canvas'); heads.id='matrixHeads'; heads.style.position='absolute'; heads.style.inset='0';
-    const glow = document.createElement('canvas'); glow.id='matrixGlow'; glow.style.position='absolute'; glow.style.inset='0'; glow.style.mixBlendMode='screen'; glow.style.opacity='0.75';
-    wrap.appendChild(base); wrap.appendChild(heads); wrap.appendChild(glow);
-    document.body.appendChild(wrap);
-    // expose controls references
-    window._beltah_matrix_layers = {base, heads, glow, wrap};
-  }
-  // bring existing matrixControls above
-  const controls = document.getElementById('matrixControls');
-  if(controls) controls.style.zIndex = 70;
-})();
-(function(){
-  const base = document.getElementById('matrixBase');
-  const heads = document.getElementById('matrixHeads');
-  const glow = document.getElementById('matrixGlow');
-  const wrap = document.getElementById('matrixWrapGlobal');
-
-  const ctxBase = base.getContext('2d');
-  const ctxHeads = heads.getContext('2d');
-  const ctxGlow = glow.getContext('2d');
-
-  const DPR = Math.min(window.devicePixelRatio || 1, 2);
-  let cols = 0, colWidth = 14;
-  let y = [], speeds = [], chars = [];
-  let running = true;
-
-  const charset = (()=>{ const a=[]; for(let i=33;i<127;i++) a.push(String.fromCharCode(i)); a.push('▓','▒','░','█','■','●','◉','◌'); return a; })();
-
-  function updateTargetFPS(){
-    const ua = navigator.userAgent || '';
-    return /Mobi|Android|iPhone|iPad/i.test(ua) ? 36 : 60;
-  }
-  let targetFPS = updateTargetFPS();
-
-  function resizeAll(){
-    const w = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
-    const h = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
-    [base, heads, glow].forEach(c => {
-      c.width = Math.floor(w * DPR);
-      c.height = Math.floor(h * DPR);
-      c.style.width = w + 'px';
-      c.style.height = h + 'px';
-    });
-    colWidth = Math.round(14 * DPR);
-    cols = Math.floor((base.width) / colWidth);
-    y.length = cols; speeds.length = cols; chars.length = cols;
-    for(let i=0;i<cols;i++){ y[i] = Math.floor(Math.random() * (base.height / 14)); speeds[i] = (0.6 + Math.random()*1.6) * DPR; chars[i] = charset[Math.floor(Math.random()*charset.length)]; }
-    ctxBase.font = `${12*DPR}px monospace`; ctxHeads.font = `${14*DPR}px monospace`; ctxGlow.font = `${20*DPR}px monospace`;
-  }
-  window.addEventListener('resize', (function(){ let t; return ()=>{ clearTimeout(t); t=setTimeout(resizeAll,120) } })());
-  resizeAll();
-
-  let last = performance.now(), acc=0;
-  const minFrameTime = 1000 / targetFPS;
-
-  function frame(now){
-    if(!running){ requestAnimationFrame(frame); return; }
-    const dt = now - last;
-    acc += dt;
-    if(acc >= minFrameTime){
-      const steps = Math.floor(acc / minFrameTime);
-      for(let s=0;s<steps;s++) tick();
-      acc = acc % minFrameTime;
-      last = now;
+  const loadBar = document.getElementById('loadBar');
+  const loading = document.getElementById('loading-overlay');
+  const scramble = document.getElementById('scrambleText');
+  let pct = 0;
+  const steps = 25;
+  // animate progress and scramble text for ~2.5 seconds
+  const id = setInterval(()=>{
+    pct += Math.random()*6 + 2;
+    if(pct > 100) pct = 100;
+    loadBar.style.width = pct + '%';
+    scramble.textContent = 'Boot sequence: [' + ('#'.repeat(Math.round(pct/5))).padEnd(20, '.') + ']';
+    if(pct >= 100) {
+      clearInterval(id);
+      setTimeout(()=>{ loading.style.display = 'none'; document.getElementById('app').style.display = 'grid'; initApp(); }, 500);
     }
-    requestAnimationFrame(frame);
+  }, 90);
+})();
+
+/* ===================== App Initialization ===================== */
+function initApp(){
+  initClock();
+  initMetrics();
+  initTerminal();
+  initLogFeed();
+  initMapInteractions();
+  // throttling: pause log generation when page hidden
+  document.addEventListener('visibilitychange', ()=> {
+    if(document.hidden) { pauseGenerators(); } else { resumeGenerators(); }
+  });
+}
+
+/* ===================== Clock ===================== */
+function initClock(){
+  const clockEls = [document.getElementById('time-display'), document.getElementById('clock')];
+  function tick(){
+    const d = new Date();
+    const s = d.toLocaleTimeString();
+    clockEls.forEach(el => el.textContent = s);
+  }
+  tick(); setInterval(tick, 1000);
+}
+
+/* ===================== Simulated CPU/Mem metrics ===================== */
+let metricInterval = null;
+function initMetrics(){
+  const cpuBar = document.getElementById('cpuBar');
+  const memBar = document.getElementById('memBar');
+  const cpuPercent = document.getElementById('cpuPercent');
+  const memPercent = document.getElementById('memPercent');
+  const netBar = document.getElementById('netBar');
+  const netHealth = document.getElementById('netHealth');
+
+  function update(){
+    // random jitter but constrained
+    const cpu = Math.round(Math.max(3, Math.min(98, 12 + Math.random()*80 + Math.sin(Date.now()/1200)*8)));
+    const mem = Math.round(Math.max(6, Math.min(94, 20 + Math.random()*60 + Math.cos(Date.now()/1700)*6)));
+    cpuBar.style.width = cpu + '%';
+    memBar.style.width = mem + '%';
+    cpuPercent.textContent = cpu + '%';
+    memPercent.textContent = mem + '%';
+    // network simulated health
+    const n = Math.round(40 + Math.random()*55);
+    netBar.style.width = n + '%';
+    netHealth.textContent = n > 60 ? 'Stable' : (n > 35 ? 'Degraded' : 'Attention');
   }
 
-  function tick(){
-    // trails
-    ctxBase.fillStyle = 'rgba(0,0,0,0.18)';
-    ctxBase.fillRect(0,0,base.width, base.height);
-    ctxHeads.clearRect(0,0,heads.width, heads.height);
-    ctxGlow.clearRect(0,0,glow.width, glow.height);
+  update();
+  metricInterval = setInterval(update, 900);
+}
 
-    for(let i=0;i<cols;i++){
-      if(Math.random() > 0.975) chars[i] = charset[Math.floor(Math.random()*charset.length)];
-      const x = i * colWidth + (2 * DPR);
-      const fontH = 14 * DPR;
-      ctxBase.fillStyle = `rgba(30,255,150,${0.06 + Math.random()*0.06})`;
-      ctxBase.fillText(chars[i], x, y[i] * fontH);
-      ctxHeads.fillStyle = `rgba(200,255,220,${0.85})`;
-      ctxHeads.fillText(chars[i], x, y[i] * fontH);
-      ctxGlow.fillStyle = `rgba(50,255,150,0.32)`;
-      ctxGlow.filter = 'blur(6px) saturate(1.2)';
-      ctxGlow.fillText(chars[i], x, y[i] * fontH);
-      y[i] += speeds[i] * (0.5 + Math.random()*0.9);
-      if(y[i] * fontH > base.height && Math.random() > 0.95){
-        y[i] = Math.floor(Math.random() * -20);
-        speeds[i] = (0.6 + Math.random()*1.6) * DPR;
+/* ===================== Terminal simulation ===================== */
+function initTerminal(){
+  const box = document.getElementById('terminal-box');
+  const input = document.getElementById('term-input');
+
+  // helper: type text into box char-by-char
+  function typeOutput(text, speed=14, cls=''){
+    return new Promise(resolve=>{
+      const line = document.createElement('div');
+      if(cls) line.className = cls;
+      box.appendChild(line);
+      box.scrollTop = box.scrollHeight;
+      let i=0;
+      const t = setInterval(()=> {
+        line.innerHTML = escapeHtml(text.slice(0,i++)) + '<span class="cursor">█</span>';
+        box.scrollTop = box.scrollHeight;
+        if(i > text.length){ clearInterval(t); line.innerHTML = escapeHtml(text); box.scrollTop = box.scrollHeight; setTimeout(resolve, 60); }
+      }, speed);
+    });
+  }
+
+  // escape html
+  function escapeHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  // initial greeting
+  (async function greet(){
+    await typeOutput('BELTAH LAB — INTERFACE MODE [SIMULATION]', 10);
+    await typeOutput('Type "help" to view simulated commands.', 12);
+  })();
+
+  // fake command handlers
+  const commands = {
+    help: async ()=> {
+      await typeOutput('Available (simulated): help, scan-africa, list-dishes, ping <country>, clear', 10);
+    },
+    'scan-africa': async ()=> {
+      await typeOutput('Scanning Africa network grid... (simulation)', 10);
+      // trigger pings across random countries
+      const ids = ['ng','eg','za','ke','ci','ma','dz'];
+      for(let i=0;i<6;i++){
+        pingCountry(ids[Math.floor(Math.random()*ids.length)]);
+        await new Promise(r=>setTimeout(r, 300));
+        await typeOutput(`Probe ${i+1}/6: ok`, 8);
+      }
+      await typeOutput('Scan complete. No real devices accessed (demo only).', 10);
+    },
+    'list-dishes': async ()=> {
+      await typeOutput('DISH ARRAY: Alpha-D1, Bravo-D2, Charlie-D3, Delta-D4, Echo-D5, Foxtrot-D6', 8);
+    },
+    clear: async ()=> { box.innerHTML=''; },
+    whoami: async ()=> { await typeOutput('beltah@lab', 8); }
+  };
+
+  // on Enter
+  input.addEventListener('keydown', async (e)=>{
+    if(e.key === 'Enter') {
+      const raw = input.value.trim();
+      input.value = '';
+      if(!raw) return;
+      // echo typed command
+      const echo = document.createElement('div'); echo.innerHTML = `<span style="color:#9df5b0">[${new Date().toLocaleTimeString()}]</span> &nbsp; <b>${escapeHtml(raw)}</b>`; box.appendChild(echo);
+      box.scrollTop = box.scrollHeight;
+      const parts = raw.split(/\s+/);
+      const cmd = parts[0].toLowerCase();
+      if(commands[cmd]) {
+        await commands[cmd](parts.slice(1));
+      } else if(cmd === 'ping' && parts[1]) {
+        // ping <country>
+        const id = lookupCountryId(parts.slice(1).join(' '));
+        if(id) { pingCountry(id); await typeOutput(`Ping sent to ${parts.slice(1).join(' ')} (simulated)`, 10); }
+        else await typeOutput('Unknown target. Try a country name (e.g. Kenya).', 10);
+      } else {
+        await typeOutput('Command not found (sim). Try help.', 12);
       }
     }
-    ctxBase.globalCompositeOperation = 'lighter';
-    ctxBase.fillStyle = 'rgba(6,20,12,0.006)'; ctxBase.fillRect(0,0,base.width, base.height);
-    ctxBase.globalCompositeOperation = 'source-over';
+  });
+}
+
+/* ===================== Log Feed (high-frequency) ===================== */
+let logInterval = null;
+let logPaused = false;
+function initLogFeed(){
+  const feed = document.getElementById('log-feed');
+
+  // supply a pool of phrases to compose cryptic logs
+  const verbs = ['ACCESS_ATTEMPT','AUTH_FAIL','CPU_WARN','PROC_DROP','ROUTE_OK','TLS_HANDSHAKE','BEACON','FIREWALL','FUZ_PKT','SIGNAL'];
+  const users = ['USER','AGENT','NODE','SERVICE','PROC','ID'];
+  const ids = ()=> Math.floor(Math.random()*900000 + 1000).toString(16).toUpperCase().slice(0,6);
+  const ips = ()=> `${Math.floor(10+Math.random()*200)}.${Math.floor(0+Math.random()*255)}.${Math.floor(0+Math.random()*255)}.${Math.floor(1+Math.random()*250)}`;
+
+  function genLine(){
+    const verb = verbs[Math.floor(Math.random()*verbs.length)];
+    const u = users[Math.floor(Math.random()*users.length)];
+    const port = [22,80,443,8080,1883,53][Math.floor(Math.random()*6)];
+    return `[${verb}] ${u} ${ids()} • IP ${ips()}:${port} • THR ${Math.floor(Math.random()*98)}%`;
   }
 
-  requestAnimationFrame(frame);
-
-  // toggle
-  const toggleBtn = document.getElementById('matrixToggleBtn');
-  const statusSpan = document.getElementById('matrixStatus');
-  function setRunning(v){ running = v; statusSpan.textContent = v ? 'ON' : 'OFF'; toggleBtn.textContent = v ? 'Disable Matrix' : 'Enable Matrix'; wrap.style.display = v ? 'block' : 'none'; }
-  toggleBtn.addEventListener('click', ()=> setRunning(!running));
-  document.addEventListener('keydown', (e)=>{ if(e.code==='KeyM' && e.ctrlKey && e.shiftKey){ setRunning(!running); } });
-
-  document.addEventListener('visibilitychange', ()=>{ if(document.hidden) setRunning(false); else setRunning(true); });
-
-  // expose
-  window.BeltahMatrix = { enable: ()=> setRunning(true), disable: ()=> setRunning(false), isRunning: ()=> running };
-})();
-
-/* ==================== Terminal & sequences ==================== */
-const terminal = document.getElementById('terminal');
-const cmdInput = document.getElementById('cmdInput');
-const cmdRun = document.getElementById('cmdRun');
-
-function appendTerm(html){ const d=document.createElement('div'); d.innerHTML = html; terminal.appendChild(d); terminal.scrollTop = terminal.scrollHeight; }
-function typeTerm(text, speed=12, cb=null){ const el=document.createElement('div'); terminal.appendChild(el); terminal.scrollTop = terminal.scrollHeight; let i=0; const t=setInterval(()=>{ el.innerHTML = text.slice(0,i++).replace(/</g,'&lt;'); terminal.scrollTop = terminal.scrollHeight; if(i>text.length){ clearInterval(t); if(cb) cb(); } }, speed); }
-
-appendTerm('<div style="font-weight:800">BELTAH LAB — Terminal (simulated)</div>');
-appendTerm('<div class="small">Harmless demo. Type "help" or press Play Sequence.</div>');
-appendTerm('<hr/>');
-
-function fakeIP(){ return `${Math.floor(10+Math.random()*190)}.${Math.floor(1+Math.random()*240)}.${Math.floor(1+Math.random()*240)}.${Math.floor(1+Math.random()*240)}`; }
-
-function scriptedSequence(name){
-  showOverlay(`Running ${name}...`);
-  let logs = [
-    `Resolving host ${fakeIP()}`,
-    `Opening test socket ${Math.floor(Math.random()*60000)+1000}`,
-    `TLS handshake ok (ECDHE-RSA-AES128-GCM)`,
-    `Applying fuzzing payload ${Math.floor(Math.random()*900)+100}`,
-    `Allocating buffer ${Math.floor(1024+Math.random()*8192)} bytes`
-  ];
-  let i=0;
-  function step(){
-    if(i < logs.length){
-      appendTerm(`<div class="small">[${new Date().toLocaleTimeString()}] ${logs[i]}</div>`);
-      i++;
-      pulseDish(Math.floor(Math.random()*dishes.length));
-      setTimeout(step, 600 + Math.random()*600);
-    } else {
-      appendTerm(`<div style="color:#9fffb9">[${new Date().toLocaleTimeString()}] ${name} complete (simulated)</div>`);
-      hideOverlay();
-    }
+  function pushLine(){
+    if(logPaused) return;
+    const el = document.createElement('div'); el.textContent = genLine();
+    feed.appendChild(el);
+    // keep limited height for performance
+    while(feed.children.length > 600) feed.removeChild(feed.firstChild);
+    feed.scrollTop = feed.scrollHeight;
   }
-  step();
+
+  // high frequency: about 6-9 lines per second (every 110-200 ms).
+  logInterval = setInterval(()=>{ pushLine(); }, 150);
+
+  // small visible demo startup lines
+  feed.appendChild(Object.assign(document.createElement('div'), {textContent: '[SYS] Live log feed initialized (simulated)'}));
+  feed.appendChild(Object.assign(document.createElement('div'), {textContent: '[SYS] In demo mode — no network scanning performed.'}));
 }
 
-cmdRun.addEventListener('click', ()=>{ const v=cmdInput.value.trim(); if(!v) return; handleCmd(v); cmdInput.value=''; cmdInput.focus(); });
-cmdInput.addEventListener('keydown', e=>{ if(e.key==='Enter'){ cmdRun.click(); } });
+function pauseGenerators(){ logPaused = true; if(metricInterval) clearInterval(metricInterval); }
+function resumeGenerators(){ logPaused = false; if(!metricInterval) initMetrics(); }
 
-function handleCmd(txt){
-  appendTerm(`<div><span style="color:#9df5b0">[${new Date().toLocaleTimeString()}]</span> <b>${txt.replace(/</g,'&lt;')}</b></div>`);
-  const cmd = txt.split(/\s+/)[0].toLowerCase();
-  if(cmd==='help'){ typeTerm('Available: scan-ports, brute-force, fetch-creds, dump-db, clear, whoami',12); return; }
-  if(cmd==='clear'){ terminal.innerHTML=''; return; }
-  if(cmd==='whoami'){ typeTerm('beltah@lab',12); return; }
-  const sim = ['scan-ports','brute-force','fetch-creds','dump-db'];
-  if(sim.indexOf(cmd) >= 0) { scriptedSequence(cmd); return; }
-  typeTerm('Command not found (sim). Try help.',12);
+/* ===================== Map interactions (simple) ===================== */
+function initMapInteractions(){
+  const countries = document.querySelectorAll('.country');
+  countries.forEach(el=>{
+    el.addEventListener('mouseenter', ()=>{
+      el.classList.add('active');
+      showCountryTooltip(el.dataset.name);
+    });
+    el.addEventListener('mouseleave', ()=>{
+      el.classList.remove('active');
+      hideCountryTooltip();
+    });
+    el.addEventListener('click', ()=>{
+      pingCountry(el.id);
+      appendLog(`[MAP] Manual ping triggered for ${el.dataset.name}`);
+    });
+  });
 }
 
-/* ==================== Google Earth embed fallback globe ==================== */
-const earthIframe = document.getElementById('earthEmbed');
-const globeFallback = document.getElementById('globeFallback');
-const earthFallbackMsg = document.getElementById('earthFallbackMsg');
-let earthLoadTimeout = setTimeout(()=>{ showGlobeFallback(); }, 1600);
-earthIframe.addEventListener('load', ()=>{ clearTimeout(earthLoadTimeout); hideGlobeFallback(); setTimeout(()=>{},400); });
-
-function showGlobeFallback(){ globeFallback.style.display='block'; earthFallbackMsg.style.display='flex'; globeFallback.width = globeFallback.clientWidth; globeFallback.height = globeFallback.clientHeight; initFallbackGlobe(); }
-function hideGlobeFallback(){ globeFallback.style.display='none'; earthFallbackMsg.style.display='none'; }
-
-// fallback globe (2D)
-let gfCtx, gfW, gfH, gfPoints = [], gfAngle = 0;
-function initFallbackGlobe(){
-  gfCtx = globeFallback.getContext('2d');
-  gfW = globeFallback.width = globeFallback.clientWidth;
-  gfH = globeFallback.height = globeFallback.clientHeight;
-  gfPoints = [];
-  for(let i=0;i<700;i++){
-    const u = Math.random()*2-1; const t = Math.random()*Math.PI*2; const r = Math.sqrt(1 - u*u);
-    const x = r*Math.cos(t), y = r*Math.sin(t), z = u;
-    gfPoints.push({x,y,z});
-  }
-  requestAnimationFrame(drawFallbackGlobe);
+// simple tooltip (using title attribute fallback)
+function showCountryTooltip(name){
+  // we append a small temporary log message in terminal & feed to simulate tooltip
+  appendLog(`[MAP] Hover: ${name} — status: OK (simulated)`);
 }
-function drawFallbackGlobe(){
-  if(!gfCtx) return;
-  gfCtx.clearRect(0,0,gfW,gfH);
-  const cx = gfW/2, cy = gfH/2, R = Math.min(gfW,gfH)/2 - 8;
-  gfCtx.beginPath(); gfCtx.arc(cx,cy,R,0,Math.PI*2); gfCtx.strokeStyle='rgba(120,255,170,0.06)'; gfCtx.stroke();
-  const ca = Math.cos(gfAngle), sa = Math.sin(gfAngle);
-  for(const p of gfPoints){
-    const x = p.x*ca + p.z*sa;
-    const z = -p.x*sa + p.z*ca;
-    const proj = R * (1 - 0.35*(1-(z+1)/2));
-    const sx = cx + x * proj;
-    const sy = cy + p.y * R * 0.9;
-    const depth = (z+1)/2;
-    gfCtx.fillStyle = `rgba(30,255,150,${0.25 + depth*0.7})`;
-    gfCtx.beginPath(); gfCtx.arc(sx,sy, 0.8 + depth*1.6,0,Math.PI*2); gfCtx.fill();
-  }
-  gfAngle += 0.006;
-  requestAnimationFrame(drawFallbackGlobe);
+function hideCountryTooltip(){ /* no-op for now */ }
+
+/* Small visual ping animation on a country (by id) */
+function pingCountry(id){
+  const svg = document.getElementById('africa-svg');
+  const target = document.getElementById(id);
+  if(!target) return;
+  // compute centroid of path bounding box
+  const bbox = target.getBBox();
+  const cx = bbox.x + bbox.width/2;
+  const cy = bbox.y + bbox.height/2;
+  const ping = document.getElementById('ping1');
+  ping.setAttribute('cx', cx);
+  ping.setAttribute('cy', cy);
+  ping.style.opacity = '1';
+  ping.style.transition = 'opacity 600ms ease';
+  setTimeout(()=> { ping.style.opacity = '0'; }, 80);
+  // also flash country
+  target.classList.add('active');
+  setTimeout(()=> target.classList.remove('active'), 650);
+  // log
+  appendLog(`[PING] ${target.dataset.name} pinged (simulated)`);
 }
 
-/* ==================== Dish Array Monitor ==================== */
-const radar = document.getElementById('radar');
-const rctx = radar.getContext('2d');
-const dishItems = document.getElementById('dishItems');
-const dishLogs = document.getElementById('dishLogs');
-let dishes = [];
-function initDishes(){ dishes = []; const names=['Alpha','Bravo','Charlie','Delta','Echo','Foxtrot','Sigma','Omega','Theta','Zeta']; for(let i=0;i<6;i++){ dishes.push({name:names[i]+'-D'+(i+1), signal: Math.random()*0.6+0.3, angle: Math.random()*Math.PI*2}); } renderDishList(); document.getElementById('dishCount').textContent = dishes.length; }
-function drawRadar(){ const w = radar.width = radar.clientWidth, h = radar.height = radar.clientHeight, cx = w/2, cy = h/2, R = Math.min(w,h)/2 - 8; rctx.clearRect(0,0,w,h); rctx.strokeStyle = 'rgba(60,255,160,0.05)'; rctx.lineWidth = 1; for(let i=1;i<=3;i++){ rctx.beginPath(); rctx.arc(cx,cy,R*(i/3),0,Math.PI*2); rctx.stroke(); } const t = Date.now()/1000; const sweep = t % (Math.PI*2); const grd = rctx.createLinearGradient(cx,cy,cx+Math.cos(sweep)*R,cy+Math.sin(sweep)*R); grd.addColorStop(0,'rgba(60,255,150,0.12)'); grd.addColorStop(1,'rgba(60,255,150,0.02)'); rctx.fillStyle = grd; rctx.beginPath(); rctx.moveTo(cx,cy); rctx.arc(cx,cy,R,sweep-0.5,sweep+0.5); rctx.closePath(); rctx.fill(); dishes.forEach((d,idx)=>{ const dist = 0.3 + 0.65*d.signal; const x = cx + Math.cos(d.angle + t*0.2) * R * dist; const y = cy + Math.sin(d.angle + t*0.2) * R * dist; rctx.fillStyle = `rgba(50,255,150,${0.5 + 0.5*d.signal})`; rctx.beginPath(); rctx.arc(x,y,4 + d.signal*4,0,Math.PI*2); rctx.fill(); }); requestAnimationFrame(drawRadar); }
-function renderDishList(){ dishItems.innerHTML=''; dishes.forEach(d=>{ const row=document.createElement('div'); row.style.display='flex'; row.style.justifyContent='space-between'; row.style.alignItems='center'; row.style.gap='10px'; row.style.padding='6px'; row.style.borderRadius='6px'; row.style.fontSize='13px'; row.innerHTML = `<div style="font-weight:800;color:#dfffe8">${d.name}</div><div style="width:140px;height:12px;background:rgba(255,255,255,0.03);border-radius:8px"><div style="height:100%;width:${Math.round(d.signal*100)}%;background:linear-gradient(90deg,#37ff9b,#00b384);border-radius:8px"></div></div>`; dishItems.appendChild(row); }); }
-function pushDishLog(txt){ const e=document.createElement('div'); e.textContent=`[${new Date().toLocaleTimeString()}] ${txt}`; dishLogs.prepend(e); while(dishLogs.children.length>40) dishLogs.removeChild(dishLogs.lastChild); }
-function pulseDish(i){ if(!dishes[i]) return; dishes[i].signal = Math.min(0.99, dishes[i].signal + 0.15); renderDishList(); pushDishLog(`${dishes[i].name} received ping`); }
+/* helper for logging to the live feed (and terminal) */
+function appendLog(text){
+  const feed = document.getElementById('log-feed');
+  const d = document.createElement('div');
+  d.textContent = `[${new Date().toLocaleTimeString()}] ${text}`;
+  feed.appendChild(d);
+  while(feed.children.length > 700) feed.removeChild(feed.firstChild);
+  feed.scrollTop = feed.scrollHeight;
 
-initDishes(); drawRadar();
-setInterval(()=>{ dishes.forEach(d=>{ d.signal += (Math.random()-0.5)*0.06; d.signal = Math.max(0.05, Math.min(0.99, d.signal)); }); renderDishList(); if(Math.random()>0.9){ const p=dishes[Math.floor(Math.random()*dishes.length)]; pushDishLog(`Signal event on ${p.name}`); } }, 900);
-
-/* ==================== Device Info panel (local-only) ==================== */
-const dp_device = document.getElementById('dp_device');
-const dp_batt = document.getElementById('dp_batt');
-const dp_conn = document.getElementById('dp_conn');
-
-(function detectDevice(){
-  const ua = navigator.userAgent || '';
-  dp_device.textContent = inferDeviceFromUA(ua);
-  attachBattery();
-  showConnection();
-})();
-
-function inferDeviceFromUA(ua){
-  const brands = [
-    {name:'Samsung', rx:/samsung|sm-/i},
-    {name:'Nokia', rx:/nokia|nokiaphone/i},
-    {name:'Apple', rx:/iphone|ipad|macintosh/i},
-    {name:'Xiaomi', rx:/xiaomi|mi |redmi|poco/i},
-    {name:'OnePlus', rx:/oneplus/i},
-    {name:'Huawei', rx:/huawei|honor/i},
-    {name:'Google', rx:/pixel|nexus/i},
-    {name:'Sony', rx:/sony/i},
-    {name:'Motorola', rx:/moto|motorola/i}
-  ];
-  for(const b of brands) if(b.rx.test(ua)) return b.name + ' • ' + extractModel(ua);
-  if(/android/i.test(ua)) return 'Android device';
-  if(/windows/i.test(ua)) return 'Windows PC';
-  if(/macintosh|mac os x/i.test(ua)) return 'Mac';
-  if(/linux/i.test(ua)) return 'Linux PC';
-  return 'Unknown device';
-}
-function extractModel(ua){
-  const m = ua.match(/(SM-[A-Z0-9\-]+|Pixel\s?\d+|Pixel_\d+|Nokia[^\);\/]+|M?T\d{2,}|iPhone\s?\d,\d|iPhone)/i);
-  if(m && m[0]) return m[0].replace(/_/g,' ');
-  const par = ua.match(/\(([^)]+)\)/);
-  if(par && par[1]){ const parts = par[1].split(';').map(s=>s.trim()); for(const p of parts) if(/[A-Z0-9\-]{3,}/i.test(p) && !/android|linux|windows|cpu|intel/i.test(p)) return p; }
-  return 'model';
-}
-function attachBattery(){
-  if(!navigator.getBattery) { dp_batt.textContent = 'Unavailable'; return; }
-  navigator.getBattery().then(b=>{
-    function upd(){ dp_batt.textContent = Math.round(b.level*100) + '%' + (b.charging ? ' (charging)' : ''); }
-    b.addEventListener('levelchange', upd); b.addEventListener('chargingchange', upd); upd();
-  }).catch(()=>{ dp_batt.textContent = 'Unavailable'; });
-}
-function showConnection(){
-  const nav = navigator;
-  const conn = nav.connection || nav.mozConnection || nav.webkitConnection;
-  if(!conn){ dp_conn.textContent = 'Unknown'; return; }
-  function upd(){ dp_conn.textContent = (conn.effectiveType || 'unknown') + (conn.downlink ? ' • ' + conn.downlink + ' Mbps' : ''); }
-  conn.addEventListener && conn.addEventListener('change', upd); upd();
+  // also mirror to terminal minimal echo
+  const termBox = document.getElementById('terminal-box');
+  const line = document.createElement('div');
+  line.style.color = '#9fe8c8';
+  line.textContent = `${text}`;
+  termBox.appendChild(line);
+  termBox.scrollTop = termBox.scrollHeight;
 }
 
-/* ==================== Overlay controls & play sequence ==================== */
-const overlay = document.getElementById('overlay');
-const overlayMsg = document.getElementById('overlayMsg');
-const overlayFill = document.getElementById('overlayFill');
-
-function showOverlay(msg){
-  overlay.style.display = 'grid';
-  overlayMsg.textContent = msg || 'Working...';
-  overlayFill.style.width = '2%';
-  let p = 2;
-  const id = setInterval(()=>{ p += Math.random()*8; if(p>96) p=96; overlayFill.style.width = p + '%'; }, 260);
-  overlay._cancel = ()=>{ clearInterval(id); overlay.style.display='none'; overlayFill.style.width='0%'; };
-  return overlay._cancel;
+/* country id lookup by name (case-insensitive, simple heuristic) */
+function lookupCountryId(name){
+  if(!name) return null;
+  name = name.toLowerCase().replace(/[^a-z\s]/g,'').trim();
+  const map = {
+    'nigeria':'ng','kenya':'ke','egypt':'eg','south africa':'za','southafrica':'za','cote d\'ivoire':'ci','ivory coast':'ci','morocco':'ma','algeria':'dz'
+  };
+  return map[name] || null;
 }
-function hideOverlay(){ if(overlay._cancel) overlay._cancel(); }
 
-document.getElementById('playSeq').addEventListener('click', ()=>{
-  appendTerm(`<div style="color:#bfffe0;font-weight:800">[${new Date().toLocaleTimeString()}] MOVIE SEQUENCE START</div>`);
-  const cancel = showOverlay('Bootstrapping sequence...');
-  setTimeout(()=>{ appendTerm(`<div class="small">[${new Date().toLocaleTimeString()}] Initializing matrix capture</div>`); }, 700);
-  setTimeout(()=>{ appendTerm(`<div class="small">[${new Date().toLocaleTimeString()}] Spawning dish pings</div>`); pulseDish(Math.floor(Math.random()*dishes.length)); }, 1400);
-  setTimeout(()=>{ appendTerm(`<div class="small">[${new Date().toLocaleTimeString()}] Rotating global view</div>`); if(globeFallback.style.display==='block'){ gfAngle += 0.6; } }, 2200);
-  setTimeout(()=>{ appendTerm(`<div style="color:#9fffb9">[${new Date().toLocaleTimeString()}] Sequence complete</div>`); hideOverlay(); }, 4800);
-});
-document.getElementById('report').addEventListener('click', ()=>{
-  const content = `BELTAH LAB — SIMULATED REPORT\nTimestamp: ${new Date().toISOString()}\nNote: simulated demo\n`;
-  const blob = new Blob([content], {type:'text/plain'}); const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='beltah_report.txt'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-});
-document.getElementById('present').addEventListener('click', ()=>{
-  document.body.classList.toggle('presentation');
-  const p = document.body.classList.contains('presentation');
-  document.querySelectorAll('.controls')[0].style.display = p ? 'none' : '';
-});
+/* ===================== Data structures (mock backend responses) ===================== */
+/* The front-end will use these JS objects as if they were returned by a real backend.
+   They are pure simulation data and are used to drive UI. */
+const mockBackend = {
+  system: {
+    version: 'beltah-1.0-demo',
+    uptime: 12456,
+    nodes: 12
+  },
+  dishes: [
+    { id: 'Alpha-D1', signal: 0.86 },
+    { id: 'Bravo-D2', signal: 0.59 },
+    { id: 'Charlie-D3', signal: 0.72 },
+    { id: 'Delta-D4', signal: 0.34 },
+    { id: 'Echo-D5', signal: 0.47 },
+    { id: 'Foxtrot-D6', signal: 0.91 },
+  ],
+  regions: [
+    { code: 'NG', name: 'Nigeria', status: 'online', score: 82 },
+    { code: 'KE', name: 'Kenya', status: 'online', score: 74 },
+    { code: 'EG', name: 'Egypt', status: 'online', score: 64 },
+    { code: 'ZA', name: 'South Africa', status: 'online', score: 69 },
+  ],
+};
 
-/* ESC hides overlay */
-document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ hideOverlay(); } });
-
-/* small helper append */
-function appendLine(html){ appendTerm(html); }
+/* ===================== End of script ===================== */
 </script>
 </body>
 </html>
