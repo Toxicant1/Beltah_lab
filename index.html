@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Beltah — Hacking Lab (demo)</title>
+<style>
+  /* Basic reset */
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;font-family:Consolas,Monaco,monospace,monospace;background:#020204;color:#33ff88}
+  /* Matrix background */
+  .matrix {
+    position:fixed;left:0;top:0;right:0;bottom:0;z-index:0;overflow:hidden;background:#000;
+  }
+  canvas#matrixCanvas{width:100%;height:100%;display:block;opacity:0.12;mix-blend-mode:screen}
+  /* Main layout */
+  .lab {
+    position:relative;z-index:2;display:flex;gap:18px;padding:18px;height:100vh;
+    align-items:stretch;justify-content:center;
+  }
+  .panel {
+    background:linear-gradient(180deg, rgba(0,0,0,0.6), rgba(8,8,8,0.9));
+    border-radius:10px;padding:14px;border:1px solid rgba(50,255,150,0.08);
+    box-shadow:0 8px 40px rgba(0,0,0,0.6);
+    color:#b8ffd2;backdrop-filter: blur(4px);
+  }
+  /* Left: terminal */
+  .terminal {
+    flex:1;min-width:420px;max-width:900px;height:calc(100vh - 36px);display:flex;flex-direction:column;
+  }
+  .term-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .dots{display:flex;gap:6px}
+  .dot{width:12px;height:12px;border-radius:50%}
+  .dot.red{background:#ff5f56}.dot.yl{background:#ffbd2e}.dot.gr{background:#27c93f}
+  .term-screen{
+    flex:1;padding:12px;background:linear-gradient(180deg, rgba(2,6,4,0.25), rgba(2,4,6,0.5));
+    border-radius:6px;overflow:auto;border:1px solid rgba(120,255,170,0.06);
+    box-shadow:inset 0 2px 10px rgba(0,0,0,0.6);
+    font-size:13px;line-height:1.35;color:#bfffd4;
+  }
+  .prompt { color:#9df5b0; }
+  .muted { color:#6ea78e; }
+  .cmd { color:#a6fff0; font-weight:700; }
+  .green { color:#33ff88; font-weight:700; }
+  .big { font-size:15px; font-weight:700; color:#dfffe8; }
+
+  /* Right: controls */
+  .sidebar{width:320px;display:flex;flex-direction:column;gap:12px}
+  .card{padding:12px;border-radius:8px;background:linear-gradient(180deg, rgba(0,0,0,0.35), rgba(0,0,0,0.45));border:1px solid rgba(50,255,150,0.04)}
+  .btn{display:inline-block;padding:8px 12px;border-radius:8px;background:#0ea36b;color:#00201a;font-weight:800;cursor:pointer;border:none}
+  .btn.warn{background:#ff8b3d;color:#221200}
+  .small{font-size:12px;color:#94f0b2}
+  .progress{height:12px;background:rgba(255,255,255,0.06);border-radius:8px;overflow:hidden;margin-top:8px}
+  .bar{height:100%;width:0;background:linear-gradient(90deg,#37ff9b,#00b384);transition:width 0.12s linear}
+
+  /* Footer */
+  footer{position:fixed;left:14px;right:14px;bottom:14px;z-index:3;display:flex;justify-content:space-between;color:#6ee6b2;font-size:12px;opacity:0.9}
+  a.brand{color:#caffde;text-decoration:none;font-weight:800}
+
+  /* Responsive */
+  @media (max-width:900px){
+    .lab{flex-direction:column;padding:10px}
+    .sidebar{width:100%}
+    .terminal{max-width:100%;height:60vh}
+  }
+</style>
+</head>
+<body>
+  <div class="matrix"><canvas id="matrixCanvas"></canvas></div>
+
+  <div class="lab">
+    <div class="panel terminal" role="main" aria-label="Fake Hacking Terminal">
+      <div class="term-header">
+        <div class="dots"><div class="dot red"></div><div class="dot yl"></div><div class="dot gr"></div></div>
+        <div style="flex:1"></div>
+        <div class="muted">Beltah Lab • v0.9 (demo)</div>
+      </div>
+
+      <div class="term-screen" id="termScreen" tabindex="0"></div>
+
+      <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+        <input id="cmdInput" autofocus placeholder="Type a fake command like: scan-ports target01" style="flex:1;padding:8px;border-radius:8px;border:1px solid rgba(60,255,140,0.06);background:rgba(0,0,0,0.25);color:#cffff0" />
+        <button class="btn" id="runBtn">RUN</button>
+      </div>
+    </div>
+
+    <div class="sidebar">
+      <div class="card">
+        <div class="big">Target</div>
+        <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+          <input id="targetInput" value="target01.corp.local" style="flex:1;padding:8px;border-radius:8px;border:1px solid rgba(120,255,170,0.06);background:#06120a;color:#bfffe8" />
+          <button class="btn" id="setTarget">SET</button>
+        </div>
+        <div class="small" style="margin-top:8px">Change the target to personalize the prank.</div>
+      </div>
+
+      <div class="card">
+        <div class="big">Quick Actions</div>
+        <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:8px">
+          <button class="btn" data-cmd="scan-ports">Scan Ports</button>
+          <button class="btn" data-cmd="brute-force">Brute Force</button>
+          <button class="btn warn" data-cmd="fetch-creds">Fetch Creds</button>
+          <button class="btn" data-cmd="dump-db">Dump DB</button>
+          <button class="btn" data-cmd="open-shell">Open Shell</button>
+        </div>
+        <div class="small" style="margin-top:8px">Buttons trigger scripted sequences that look real but do nothing harmful.</div>
+      </div>
+
+      <div class="card">
+        <div class="big">Progress</div>
+        <div class="small">Operation Status</div>
+        <div class="progress"><div class="bar" id="progBar"></div></div>
+        <div id="progText" class="small" style="margin-top:6px">Idle</div>
+      </div>
+
+    </div>
+  </div>
+
+  <footer><div class="small">Demo Hacking Lab • For entertainment only</div><a class="brand" href="#" onclick="alert('Beltah Lab demo');return false">Beltah</a></footer>
+
+<script>
+/* =========================
+   Config / Helper Texts
+   ========================= */
+const TARGET_NAME_DEFAULT = "target01.corp.local";
+let TARGET_NAME = TARGET_NAME_DEFAULT;
+const term = document.getElementById('termScreen');
+const input = document.getElementById('cmdInput');
+const runBtn = document.getElementById('runBtn');
+const progBar = document.getElementById('progBar');
+const progText = document.getElementById('progText');
+const targetInput = document.getElementById('targetInput');
+
+function appendLine(html='', cls='') {
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  if(cls) div.classList.add(cls);
+  term.appendChild(div);
+  term.scrollTop = term.scrollHeight;
+}
+
+/* Auto-typing effect */
+function typeLine(text, speed=18, onDone=null) {
+  const line = document.createElement('div');
+  term.appendChild(line);
+  term.scrollTop = term.scrollHeight;
+  let i=0;
+  const t = setInterval(()=>{
+    line.innerHTML = escapeHtml(text.slice(0, i++));
+    term.scrollTop = term.scrollHeight;
+    if(i>text.length){ clearInterval(t); if(onDone) onDone(); }
+  }, speed);
+}
+
+/* escape */
+function escapeHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+
+/* fake IP generator */
+function fakeIP(){ return `${rand(10,200)}.${rand(1,255)}.${rand(1,255)}.${rand(1,255)}` }
+function rand(a,b){ return Math.floor(Math.random()*(b-a+1))+a }
+
+/* =========================
+   Matrix Background
+   ========================= */
+(function matrixInit(){
+  const canvas = document.getElementById('matrixCanvas');
+  const ctx = canvas.getContext('2d');
+  function resize(){
+    canvas.width = innerWidth;
+    canvas.height = innerHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+  const cols = Math.floor(canvas.width / 14);
+  const y = new Array(cols).fill(0);
+  function frame(){
+    ctx.fillStyle = 'rgba(0,0,0,0.12)';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle = '#19ff9a';
+    ctx.font = '12px monospace';
+    for(let i=0;i<y.length;i++){
+      const text = String.fromCharCode(33 + Math.random()*94);
+      ctx.fillText(text, i*14, y[i]*14);
+      if(y[i]*14 > canvas.height && Math.random()>0.975) y[i]=0;
+      y[i] += 1;
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+
+/* =========================
+   Fake command sequences
+   ========================= */
+
+function resetProgress(){
+  progBar.style.width = '0%';
+  progText.textContent = 'Idle';
+}
+
+function runSequence(name){
+  resetProgress();
+  appendLine(`<span class="muted">[${timestamp()}] Launching <span class="cmd">${name}</span> against <span class="green">${TARGET_NAME}</span></span>`);
+  progText.textContent = 'Initializing…';
+  let progress = 0;
+  const interval = setInterval(()=>{
+    progress += rand(3,9);
+    if(progress>100) progress = 100;
+    progBar.style.width = progress + '%';
+    progText.textContent = `Running — ${progress}%`;
+    if(progress>=100){
+      clearInterval(interval);
+      setTimeout(()=>{
+        progBar.style.width = '100%';
+        progText.textContent = 'Complete';
+        finishSequence(name);
+      }, 350);
+    }
+  }, 220);
+  // add a few log lines while progressing
+  const logTimer = setInterval(()=>{
+    appendLine(`<span class="muted">[${timestamp()}] ${fakeLogLine(name)}</span>`);
+    if(!document.body.contains(progBar)) clearInterval(logTimer);
+  }, 800);
+}
+
+/* Generate plausible fake logs (safe content) */
+function fakeLogLine(op){
+  const actions = [
+    `Resolving host ${TARGET_NAME} (${fakeIP()})`,
+    `Opening test socket ${rand(2000,65000)}`,
+    `TLS handshake ok (cipher ECDHE-RSA-AES128-GCM-SHA256)`,
+    `Testing vector ${rand(1,9999)}`,
+    `Applying fuzzing packet ${rand(100,999)}`,
+    `Bypassing simulated firewall rule id ${rand(1000,9999)}`,
+    `Allocating exploit buffer [${rand(1024,8192)}] bytes`,
+    `Brute candidate set ${rand(100000,9999999)} entries`,
+  ];
+  return actions[rand(0,actions.length-1)];
+}
+
+function finishSequence(name){
+  const safeResults = {
+    'scan-ports': `Open ports found: 22, 80, 443, 8080`,
+    'brute-force': `Login attempts simulated: 1M — no real credentials accessed (demo)`,
+    'fetch-creds': `Stored credentials (simulated): admin:***** redacted`,
+    'dump-db': `DB dump: 120MB (simulated) — exported to /tmp/${TARGET_NAME}_dump.sql`,
+    'open-shell': `Reverse shell (emulated): shell@${TARGET_NAME}:~$`
+  };
+  appendLine(`<span class="green">[${timestamp()}] ${safeResults[name] || 'Operation finished (simulated)'}</span>`);
+  appendLine(`<span class="muted">[${timestamp()}] Output saved to /tmp/${name}_${TARGET_NAME}.log</span>`);
+}
+
+/* timestamp */
+function timestamp(){ return new Date().toLocaleTimeString() }
+
+/* handle built-in commands */
+function handleCommand(raw){
+  const txt = raw.trim();
+  if(!txt) return;
+  appendLine(`<span class="prompt">beltah@lab:~$</span> <span class="cmd">${escapeHtml(txt)}</span>`);
+  const parts = txt.split(/\s+/);
+  const cmd = parts[0].toLowerCase();
+  if(cmd === 'help'){
+    typeLine("Available (simulated): scan-ports, brute-force, fetch-creds, dump-db, open-shell, clear, whoami, target <name>",12);
+    return;
+  }
+  if(cmd === 'clear'){ term.innerHTML = ''; return; }
+  if(cmd === 'whoami'){ typeLine("beltah@lab",12); return; }
+  if(cmd === 'target'){
+    const newt = parts[1]||TARGET_NAME_DEFAULT;
+    TARGET_NAME = newt;
+    targetInput.value = TARGET_NAME;
+    typeLine(`Target set to ${TARGET_NAME}`,12);
+    return;
+  }
+  // recognized simulated commands
+  const simulated = ['scan-ports','brute-force','fetch-creds','dump-db','open-shell'];
+  if(simulated.includes(cmd)){
+    runSequence(cmd);
+    return;
+  }
+  // fallback: unrecognized
+  typeLine(`Command not found: ${cmd} — type 'help' for demo commands`,12);
+}
+
+/* wire input and buttons */
+runBtn.addEventListener('click', ()=>{ handleCommand(input.value); input.value=''; input.focus(); });
+input.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ handleCommand(input.value); input.value=''; } });
+document.querySelectorAll('button[data-cmd]').forEach(b=>{
+  b.addEventListener('click', ()=>{ handleCommand(b.dataset.cmd); });
+});
+document.getElementById('setTarget').addEventListener('click', ()=>{
+  TARGET_NAME = targetInput.value.trim()||TARGET_NAME_DEFAULT;
+  appendLine(`<span class="muted">[${timestamp()}] Target changed to <span class="green">${TARGET_NAME}</span></span>`);
+});
+
+/* open-shell easter: produce continuous typing */
+function openShellSim(){
+  const lines = [
+    `Connecting to ${TARGET_NAME}...`,
+    `Simulating reverse shell...`,
+    `shell@${TARGET_NAME}:~$ ls -la /var/www`,
+    `drwxr-xr-x  5 www-data www-data 4096 Apr 12 08:23 .`,
+    `-rw-r--r--  1 www-data www-data   45 Apr 11 21:09 index.php`,
+    `shell@${TARGET_NAME}:~$`
+  ];
+  (function seq(i){
+    if(i>=lines.length) return;
+    typeLine(lines[i], 18, ()=>setTimeout(()=>seq(i+1), 180));
+  })(0);
+}
+
+/* override finishSequence for open-shell to call openShellSim */
+const originalFinish = finishSequence;
+finishSequence = function(name){
+  originalFinish(name);
+  if(name === 'open-shell'){ setTimeout(openShellSim, 420); }
+};
+
+/* initial welcome */
+appendLine(`<div class="big">Beltah Lab • Demo Hacking Interface</div>`);
+appendLine(`<div class="small muted">This is a simulation only — for prank/visual use. No real network operations are performed.</div>`);
+appendLine('<hr />');
+typeLine(`Welcome, operator. Target is ${TARGET_NAME_DEFAULT}. Type 'help' for demo commands.`, 12);
+
+/* ===== Optional: auto-run demo steps when page loads for quick prank effect ===== */
+setTimeout(()=>{ handleCommand('scan-ports'); }, 1200);
+setTimeout(()=>{ handleCommand('brute-force'); }, 5200);
+setTimeout(()=>{ handleCommand('fetch-creds'); }, 10800);
+
+/* ========= small extras: focus terminal on click and keyboard shortcut =========== */
+term.addEventListener('click', ()=> input.focus());
+document.addEventListener('keydown', (e)=>{ if(e.key === 't' && e.ctrlKey){ input.value='target evilcorp.internal'; handleCommand('target evilcorp.internal'); input.value=''; } });
+</script>
+</body>
+  </html>
