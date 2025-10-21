@@ -3,368 +3,93 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Beltah Lab — Front-End Hacking Lab Demo</title>
-  <link rel="stylesheet" href="style.css"> 
-</head>
-  :root{
-    --bg:#000;
-    --neon:#00ff41;
-    --muted:rgba(0,255,65,0.18);
-    --accent:#ffcc00;
-    --panel-bg: rgba(0,8,6,0.65);
-    --glass: rgba(255,255,255,0.02);
-  }
-  html,body{height:100%;margin:0;background:var(--bg);color:var(--neon);font-family: "Courier New", Consolas, "Lucida Console", monospace; -webkit-font-smoothing:antialiased;}
-  *{box-sizing:border-box}
-  /* scanlines + vignette */
-  #scanlines{position:fixed;inset:0;pointer-events:none;z-index:9998;opacity:0.06;background-image:linear-gradient(rgba(0,0,0,0) 50%, rgba(0,0,0,0.12) 51%);background-size:100% 4px}
-  #vign{position:fixed;inset:0;pointer-events:none;z-index:9997;background:radial-gradient(ellipse at center, rgba(0,0,0,0) 50%, rgba(0,0,0,0.6) 100%)}
-  /* layout grid */
-  .wrap{position:relative;z-index:2;height:100vh;display:grid;grid-template-columns: 1fr 1fr;grid-template-rows: 1fr 1fr;gap:12px;padding:12px}
-  .panel{background:linear-gradient(180deg, rgba(2,6,4,0.6), rgba(8,12,10,0.8));border-radius:10px;padding:12px;border:1px solid rgba(0,255,140,0.04);box-shadow:0 12px 40px rgba(0,0,0,0.6);position:relative;overflow:hidden}
-  .title{font-weight:900;color:#dfffe8;margin-bottom:10px;font-size:14px}
-  .small{font-size:12px;color:var(--muted)}
-  /* positions */
-  .p-term{grid-column:1/2;grid-row:1/2}
-  .p-map{grid-column:2/3;grid-row:1/2}
-  .p-stats{grid-column:1/2;grid-row:2/3}
-  .p-log{grid-column:2/3;grid-row:2/3}
-  /* terminal */
-  #terminal { height: calc(100% - 48px); background:rgba(0,0,0,0.12); border-radius:6px; padding:10px; overflow:auto; color:#bfffd4; font-size:13px; line-height:1.35; }
-  #cmd { width:100%; margin-top:8px; padding:10px; border-radius:8px; border:1px solid rgba(0,255,140,0.06); background:rgba(0,0,0,0.14); color:var(--neon); font-family:monospace; font-size:14px; outline:none }
-  .cursor{display:inline-block;width:8px;animation:blink 900ms steps(2) infinite}
-  @keyframes blink{0%{opacity:1}50%{opacity:0}100%{opacity:1}}
-  /* stats */
-  .stat { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
-  .bar { height:12px; background:rgba(255,255,255,0.03); border-radius:8px; overflow:hidden; flex:1; margin-left:10px }
-  .bar > i { display:block; height:100%; width:0; background:linear-gradient(90deg,#00ff88,#00b384); transition:width 140ms linear }
-  .meter-label { font-weight:800; color:#dfffe8; font-size:13px }
-  /* map */
-  #map { height:100%; border-radius:8px; background:linear-gradient(180deg,#001611,#021a14); position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; }
-  svg.network { width:100%; height:100%; }
-  .node { fill:#00ff7a; stroke:#042; stroke-width:1.2px; filter: drop-shadow(0 0 6px rgba(0,255,120,0.12)); cursor:pointer; }
-  .link { stroke: rgba(0,255,120,0.12); stroke-width:2; stroke-linecap:round; filter: drop-shadow(0 0 8px rgba(0,255,120,0.06)); }
-  .node-label { fill:#bfffd4; font-size:12px; font-family:monospace; pointer-events:none }
-  /* log feed */
-  #feed { height:100%; background:rgba(0,0,0,0.06); padding:10px; border-radius:6px; overflow:auto; color:#bfffd4; font-size:13px; line-height:1.28; }
-  #feed .time { color:var(--muted); margin-right:8px }
-  /* faux window chrome */
-  .chrome { position:absolute; left:12px; top:8px; right:12px; height:8px; display:flex; gap:8px; align-items:center; z-index:8 }
-  .dot { width:10px; height:10px; border-radius:50% }
-  .d1{background:#ff5f56} .d2{background:#ffbd2e} .d3{background:#27c93f}
-  /* header small */
-  header{ display:flex; justify-content:space-between; gap:12px; align-items:center; margin-bottom:8px }
-  .brand { font-weight:900 }
-  .controls { display:flex; gap:8px }
-  button.btn{ background:linear-gradient(90deg,#00b37a,#01884f); color:#021; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; font-weight:800 }
-  /* tooltip */
-  .tooltip { position:absolute; padding:8px 10px; background:rgba(0,0,0,0.7); border:1px solid rgba(0,255,140,0.06); border-radius:6px; color:#dfffe8; font-size:12px; pointer-events:none; z-index:30 }
-  /* responsive */
-  @media(max-width:900px){
-    .wrap{grid-template-columns:1fr;grid-template-rows:auto auto auto auto;padding:8px}
-    .p-term,.p-map,.p-stats,.p-log{grid-column:auto;grid-row:auto}
-  }
-</style>
+  <title>Beltah CyberLab — Africa Network Simulation</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
+  <!-- Screen Effects -->
   <div id="scanlines"></div>
-  <div id="vign"></div>
+  <div id="vignette"></div>
 
-  <div style="display:flex;gap:12px;align-items:center;padding:12px">
-    <div style="font-weight:900;font-size:18px;color:#caffde">BELTAH CYBERLAB</div>
-    <div style="color:var(--muted);font-size:13px">— Demo Simulator</div>
-    <div style="flex:1"></div>
+  <!-- Header -->
+  <header class="top-bar">
+    <h1 class="brand">BELTAH CYBERLAB</h1>
+    <span class="subtitle">Africa Network Simulation Interface</span>
     <div class="controls">
-      <button class="btn" id="demoSeq">Play Demo</button>
-      <button class="btn" id="clearLogs">Clear Logs</button>
+      <button id="demoSeq" class="btn">▶ Demo</button>
+      <button id="clearLogs" class="btn danger">✖ Clear Logs</button>
     </div>
-  </div>
+  </header>
 
-  <main class="wrap" id="lab">
-    <!-- TERMINAL -->
-    <section class="panel p-term" aria-label="Terminal">
+  <!-- Main Layout -->
+  <main class="wrap">
+
+    <!-- Terminal Panel -->
+    <section class="panel terminal">
       <div class="chrome"><div class="dot d1"></div><div class="dot d2"></div><div class="dot d3"></div></div>
-      <div class="title">TERMINAL CONSOLE</div>
-      <div id="terminal" aria-live="polite"></div>
-      <input id="cmd" placeholder="Type a command (help / scan / ping <node> / clear)" autocomplete="off" />
-      <div class="small" style="margin-top:8px">All actions are simulated for demonstration.</div>
+      <h2 class="panel-title">TERMINAL CONSOLE</h2>
+      <div id="terminal"></div>
+      <input id="cmd" type="text" placeholder="Type a command (help / scan / ping <node> / clear)" />
     </section>
 
-    <!-- NETWORK MAP -->
-    <section class="panel p-map" aria-label="Network Map">
+    <!-- Africa Map Panel -->
+    <section class="panel map">
       <div class="chrome"><div class="dot d1"></div><div class="dot d2"></div><div class="dot d3"></div></div>
-      <div class="title">NETWORK MAP</div>
+      <h2 class="panel-title">AFRICA NETWORK MAP</h2>
       <div id="map">
-        <!-- simple node graph (SVG) -->
-        <svg class="network" viewBox="0 0 800 450" preserveAspectRatio="xMidYMid meet">
+        <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid meet" class="network">
           <defs>
-            <radialGradient id="g" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#00ff9b" stop-opacity="0.9"/><stop offset="1" stop-color="#00ff9b" stop-opacity="0.05"/></radialGradient>
+            <radialGradient id="pulse" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#00ff88" stop-opacity="0.9"/>
+              <stop offset="100%" stop-color="#00ff88" stop-opacity="0.05"/>
+            </radialGradient>
           </defs>
 
-          <!-- links -->
-          <line class="link" id="l1" x1="150" y1="120" x2="350" y2="90" />
-          <line class="link" id="l2" x1="350" y1="90" x2="620" y2="100" />
-          <line class="link" id="l3" x1="350" y1="90" x2="350" y2="320" />
-          <line class="link" id="l4" x1="150" y1="120" x2="200" y2="320" />
+          <!-- Example connections -->
+          <line class="link" x1="120" y1="220" x2="400" y2="180" />
+          <line class="link" x1="400" y1="180" x2="650" y2="220" />
+          <line class="link" x1="400" y1="180" x2="350" y2="340" />
 
-          <!-- nodes -->
-          <g id="nodes">
-            <g class="nodeGroup" data-id="N1" transform="translate(150,120)">
-              <circle class="node" r="12"></circle>
-              <text class="node-label" x="20" y="6">Alpha</text>
-            </g>
-            <g class="nodeGroup" data-id="N2" transform="translate(350,90)">
-              <circle class="node" r="12"></circle>
-              <text class="node-label" x="20" y="6">Bravo</text>
-            </g>
-            <g class="nodeGroup" data-id="N3" transform="translate(620,100)">
-              <circle class="node" r="12"></circle>
-              <text class="node-label" x="20" y="6">Charlie</text>
-            </g>
-            <g class="nodeGroup" data-id="N4" transform="translate(200,320)">
-              <circle class="node" r="12"></circle>
-              <text class="node-label" x="20" y="6">Delta</text>
-            </g>
-            <g class="nodeGroup" data-id="N5" transform="translate(350,320)">
-              <circle class="node" r="12"></circle>
-              <text class="node-label" x="20" y="6">Echo</text>
-            </g>
+          <!-- Example country nodes -->
+          <g class="nodeGroup" data-id="Kenya" transform="translate(400,220)">
+            <circle class="node" r="12"></circle>
+            <text class="node-label" x="20" y="6">Kenya</text>
+          </g>
+          <g class="nodeGroup" data-id="Nigeria" transform="translate(200,220)">
+            <circle class="node" r="12"></circle>
+            <text class="node-label" x="20" y="6">Nigeria</text>
+          </g>
+          <g class="nodeGroup" data-id="South Africa" transform="translate(350,340)">
+            <circle class="node" r="12"></circle>
+            <text class="node-label" x="20" y="6">South Africa</text>
+          </g>
+          <g class="nodeGroup" data-id="Egypt" transform="translate(650,120)">
+            <circle class="node" r="12"></circle>
+            <text class="node-label" x="20" y="6">Egypt</text>
           </g>
         </svg>
       </div>
-      <div class="small" style="margin-top:8px">Click a node to ping it (simulated).</div>
     </section>
 
-    <!-- STATS -->
-    <section class="panel p-stats" aria-label="System Stats">
+    <!-- Stats Panel -->
+    <section class="panel stats">
       <div class="chrome"><div class="dot d1"></div><div class="dot d2"></div><div class="dot d3"></div></div>
-      <div class="title">SYSTEM DASHBOARD</div>
-      <div class="stat"><div class="meter-label">CPU</div><div class="bar"><i id="cpuBar"></i></div><div style="width:48px;text-align:right" id="cpuVal">0%</div></div>
-      <div class="stat"><div class="meter-label">MEMORY</div><div class="bar"><i id="memBar"></i></div><div style="width:48px;text-align:right" id="memVal">0%</div></div>
-      <div class="stat"><div class="meter-label">NETWORK</div><div class="bar"><i id="netBar"></i></div><div style="width:48px;text-align:right" id="netVal">0%</div></div>
-
-      <div style="height:12px"></div>
-      <div class="small">Device Info</div>
-      <div style="display:flex;gap:8px;margin-top:8px">
-        <div style="flex:1;padding:8px;border-radius:8px;background:rgba(0,0,0,0.06)"><div style="color:#caffde;font-weight:800">Visitor</div><div class="small" id="visitorInfo">Unknown</div></div>
-        <div style="flex:1;padding:8px;border-radius:8px;background:rgba(0,0,0,0.06)"><div style="color:#caffde;font-weight:800">Connection</div><div class="small" id="connInfo">Unknown</div></div>
-      </div>
+      <h2 class="panel-title">SYSTEM METRICS</h2>
+      <div class="stat"><span>CPU</span><div class="bar"><i id="cpuBar"></i></div><span id="cpuVal">0%</span></div>
+      <div class="stat"><span>MEMORY</span><div class="bar"><i id="memBar"></i></div><span id="memVal">0%</span></div>
+      <div class="stat"><span>NETWORK</span><div class="bar"><i id="netBar"></i></div><span id="netVal">0%</span></div>
     </section>
 
-    <!-- LOG FEED -->
-    <section class="panel p-log" aria-label="Live Logs">
+    <!-- Live Log Feed -->
+    <section class="panel logs">
       <div class="chrome"><div class="dot d1"></div><div class="dot d2"></div><div class="dot d3"></div></div>
-      <div class="title">LIVE ACTIVITY</div>
-      <div id="feed" role="log" aria-live="polite"></div>
+      <h2 class="panel-title">LIVE ACTIVITY FEED</h2>
+      <div id="feed"></div>
     </section>
+
   </main>
 
-<script>
-/* ======= Helpers ======= */
-function now(){ return new Date().toLocaleTimeString(); }
-function rand(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
-function el(id){ return document.getElementById(id); }
-function logFeed(text){
-  const feed = el('feed');
-  const d = document.createElement('div');
-  const t = document.createElement('span'); t.className='time'; t.textContent = `[${now()}] `;
-  d.appendChild(t);
-  d.appendChild(document.createTextNode(text));
-  feed.appendChild(d);
-  // cap lines for perf
-  if(feed.children.length > 700) feed.removeChild(feed.firstChild);
-  feed.scrollTop = feed.scrollHeight;
-}
-
-/* ======= Metrics ======= */
-let metricsTimer = null;
-function startMetrics(){
-  const cpuBar = el('cpuBar'), memBar = el('memBar'), netBar = el('netBar');
-  const cpuVal = el('cpuVal'), memVal = el('memVal'), netVal = el('netVal');
-  function update(){
-    const cpu = Math.max(3, Math.min(98, Math.round(8 + Math.random()*80 + Math.sin(Date.now()/800)*6)));
-    const mem = Math.max(6, Math.min(96, Math.round(20 + Math.random()*60 + Math.cos(Date.now()/1200)*6)));
-    const net = Math.round(40 + Math.random()*55);
-    cpuBar.style.width = cpu + '%'; memBar.style.width = mem + '%'; netBar.style.width = net + '%';
-    cpuVal.textContent = cpu + '%'; memVal.textContent = mem + '%'; netVal.textContent = net + '%';
-  }
-  update(); metricsTimer = setInterval(update, 900);
-}
-startMetrics();
-
-/* ======= Live log generator ======= */
-const verbs = ['ACCESS', 'AUTH_FAIL', 'TRACE', 'TLS', 'FIREWALL', 'BEACON', 'PROBE', 'PING', 'ROUTE'];
-const subjects = ['NODE','AGENT','SERVICE','PROC','USER'];
-function genLog(){
-  const v = verbs[rand(0,verbs.length-1)];
-  const s = subjects[rand(0,subjects.length-1)];
-  const id = Math.random().toString(36).slice(2,8).toUpperCase();
-  const ip = `${rand(10,200)}.${rand(0,255)}.${rand(0,255)}.${rand(1,250)}`;
-  return `[${v}] ${s} ${id} • IP ${ip}:${[22,80,443,8080,9001][rand(0,4)]} • THR ${rand(1,99)}%`;
-}
-let logTimer = setInterval(()=> logFeed(genLog()), 140);
-
-/* ======= Terminal behavior ======= */
-const terminal = el('terminal');
-const cmd = el('cmd');
-
-function termWrite(text, speed=8){
-  return new Promise(res=>{
-    const div = document.createElement('div');
-    terminal.appendChild(div);
-    let i=0;
-    const tick = setInterval(()=>{
-      div.innerHTML = text.slice(0,i++) + '<span class="cursor">█</span>';
-      terminal.scrollTop = terminal.scrollHeight;
-      if(i>text.length){ clearInterval(tick); div.innerHTML = text; terminal.scrollTop = terminal.scrollHeight; setTimeout(res,100); }
-    }, speed);
-  });
-}
-
-async function handleCommand(raw){
-  if(!raw) return;
-  const echo = document.createElement('div');
-  echo.innerHTML = `<span style="color:#9df5b0">[${now()}]</span> &nbsp;<b>${raw.replace(/</g,'&lt;')}</b>`;
-  terminal.appendChild(echo);
-  terminal.scrollTop = terminal.scrollHeight;
-  const parts = raw.split(/\s+/);
-  const cmdWord = parts[0].toLowerCase();
-  if(cmdWord === 'help'){
-    await termWrite('Available commands: help, scan, ping <node>, nodes, clear',10);
-  } else if(cmdWord === 'scan'){
-    await termWrite('Initiating network sweep (simulated)…',12);
-    for(let i=0;i<5;i++){
-      await new Promise(r=>setTimeout(r, rand(200,420)));
-      const n = ['Alpha','Bravo','Charlie','Delta','Echo'][rand(0,4)];
-      await termWrite(`Probe ${n}: OK`,10);
-    }
-    await termWrite('Sweep complete — no real devices touched.',12);
-  } else if(cmdWord === 'ping'){
-    const target = parts[1] || '';
-    if(!target){ await termWrite('Usage: ping <node>',10); return; }
-    pingNode(target);
-    await termWrite(`Ping sent to ${target} (simulated)`,10);
-  } else if(cmdWord === 'nodes'){
-    await termWrite('Nodes: Alpha, Bravo, Charlie, Delta, Echo',10);
-  } else if(cmdWord === 'clear'){
-    terminal.innerHTML = '';
-  } else {
-    await termWrite('Command not found. Try help.',10);
-  }
-}
-cmd.addEventListener('keydown', (e)=>{
-  if(e.key === 'Enter'){ handleCommand(cmd.value.trim()); cmd.value=''; }
-});
-
-/* ======= Node interactivity ======= */
-const nodeGroups = document.querySelectorAll('.nodeGroup');
-nodeGroups.forEach(g=>{
-  g.addEventListener('click', ()=>{
-    const id = g.getAttribute('data-id');
-    const label = g.querySelector('text').textContent;
-    pingNode(label);
-    logFeed(`[MANUAL] Pinged ${label}`);
-  });
-  g.addEventListener('mouseenter', ()=>{
-    const lbl = g.querySelector('text').textContent;
-    showTooltip(event, lbl + ' — OK');
-  });
-  g.addEventListener('mouseleave', hideTooltip);
-});
-
-/* simple ping animation: pulse the node and log */
-function pingNode(label){
-  // find group by label
-  let target = null;
-  nodeGroups.forEach(g=>{
-    if(g.querySelector('text').textContent.toLowerCase() === label.toLowerCase() || g.getAttribute('data-id') === label) target = g;
-  });
-  if(!target){
-    // no exact match: still create a fake ping entry
-    logFeed(`[PING] ${label} not found (simulated)`);
-    return;
-  }
-  const circle = target.querySelector('circle');
-  circle.style.transition = 'transform 260ms ease, opacity 260ms ease';
-  circle.style.transform = 'scale(1.8)';
-  circle.style.opacity = '1';
-  setTimeout(()=>{ circle.style.transform = 'scale(1)'; }, 260);
-  logFeed(`[PING] ${label} • RTT ${rand(12,230)} ms`);
-}
-
-/* ======= visitor device detection (best-effort) ======= */
-function detectVisitor(){
-  let ua = navigator.userAgent || 'Unknown';
-  let device = 'Unknown device';
-  if(/android/i.test(ua)) device = 'Android device';
-  else if(/iphone|ipad/i.test(ua)) device = 'iPhone / iPad';
-  else if(/macintosh/i.test(ua)) device = 'Mac';
-  else if(/windows/i.test(ua)) device = 'Windows PC';
-  el('visitorInfo').textContent = device;
-  // connection info (best-effort)
-  const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-  if(conn){
-    el('connInfo').textContent = `${conn.effectiveType || 'unknown'} • ${conn.downlink || '-'} Mbps`;
-  } else {
-    el('connInfo').textContent = 'Unknown';
-  }
-}
-detectVisitor();
-
-/* ======= Demo sequence button ======= */
-document.getElementById('demoSeq').addEventListener('click', async ()=>{
-  // short cinematic demo
-  logFeed('[DEMO] Starting cinematic demo sequence');
-  await termWrite('BOOT: BELTAH CYBERLAB DEMO',8);
-  await new Promise(r=>setTimeout(r,200));
-  await termWrite('Loading modules: network, probes, ui',8);
-  await new Promise(r=>setTimeout(r,300));
-  await termWrite('Spawning simulated pings...',8);
-  ['Alpha','Bravo','Charlie','Delta','Echo'].forEach((n,i)=>setTimeout(()=>{ pingNode(n); }, 600 + i*250));
-  setTimeout(()=>logFeed('[DEMO] Sequence complete'), 2000);
-});
-
-/* ======= Clear logs ======= */
-document.getElementById('clearLogs').addEventListener('click', ()=>{ el('feed').innerHTML=''; logFeed('[USER] Cleared logs'); });
-
-/* ======= start with a few lines in terminal ======= */
-(async function intro(){
-  await termWrite('WELCOME — BELTAH CYBERLAB (SIMULATED)',8);
-  await termWrite('Type "help" for commands. This is a harmless demo.',10);
-  logFeed('[SYS] Live feed started (simulation)');
-})();
-
-/* ======= tooltip ======= */
-let tt = null;
-function showTooltip(e, text){
-  if(!tt){
-    tt = document.createElement('div'); tt.className='tooltip'; document.body.appendChild(tt);
-  }
-  tt.textContent = text;
-  const x = (e.clientX || (e.touches && e.touches[0].clientX)) + 12;
-  const y = (e.clientY || (e.touches && e.touches[0].clientY)) + 12;
-  tt.style.left = x + 'px'; tt.style.top = y + 'px'; tt.style.display = 'block';
-}
-function hideTooltip(){ if(tt) tt.style.display='none'; }
-
-/* Pause generators when tab hidden to save CPU */
-document.addEventListener('visibilitychange', ()=>{
-  if(document.hidden){ clearInterval(logTimer); clearInterval(metricsTimer); } else { logTimer = setInterval(()=> logFeed(genLog()), 140); startMetrics(); }
-});
-
-/* helper: generate log for resume (used above) */
-function genLog(){ return genLogHelper(); }
-function genLogHelper(){
-  const v = verbs[rand(0,verbs.length-1)];
-  const s = subjects[rand(0,subjects.length-1)];
-  const id = Math.random().toString(36).slice(2,8).toUpperCase();
-  const ip = `${rand(10,200)}.${rand(0,255)}.${rand(0,255)}.${rand(1,250)}`;
-  return `[${v}] ${s} ${id} • IP ${ip}:${[22,80,443,8080,9001][rand(0,4)]} • THR ${rand(1,99)}%`;
-}
-/* keep verbs/subjects used in resume */
-const verbs = ['ACCESS','AUTH_FAIL','TRACE','TLS','FIREWALL','BEACON','PROBE','PING','ROUTE'];
-const subjects = ['NODE','AGENT','SERVICE','PROC','USER'];
-
-</script>
+  <script src="JS/app.js"></script>
 </body>
 </html>
