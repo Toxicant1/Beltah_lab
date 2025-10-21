@@ -3,378 +3,367 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Beltah Lab — Front-End Hacking Lab Demo</title>
-
-<link rel="stylesheet" href="style.css">
-
+<title>Beltah CyberLab — Demo</title>
+<style>
+  :root{
+    --bg:#000;
+    --neon:#00ff41;
+    --muted:rgba(0,255,65,0.18);
+    --accent:#ffcc00;
+    --panel-bg: rgba(0,8,6,0.65);
+    --glass: rgba(255,255,255,0.02);
+  }
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--neon);font-family: "Courier New", Consolas, "Lucida Console", monospace; -webkit-font-smoothing:antialiased;}
+  *{box-sizing:border-box}
+  /* scanlines + vignette */
+  #scanlines{position:fixed;inset:0;pointer-events:none;z-index:9998;opacity:0.06;background-image:linear-gradient(rgba(0,0,0,0) 50%, rgba(0,0,0,0.12) 51%);background-size:100% 4px}
+  #vign{position:fixed;inset:0;pointer-events:none;z-index:9997;background:radial-gradient(ellipse at center, rgba(0,0,0,0) 50%, rgba(0,0,0,0.6) 100%)}
+  /* layout grid */
+  .wrap{position:relative;z-index:2;height:100vh;display:grid;grid-template-columns: 1fr 1fr;grid-template-rows: 1fr 1fr;gap:12px;padding:12px}
+  .panel{background:linear-gradient(180deg, rgba(2,6,4,0.6), rgba(8,12,10,0.8));border-radius:10px;padding:12px;border:1px solid rgba(0,255,140,0.04);box-shadow:0 12px 40px rgba(0,0,0,0.6);position:relative;overflow:hidden}
+  .title{font-weight:900;color:#dfffe8;margin-bottom:10px;font-size:14px}
+  .small{font-size:12px;color:var(--muted)}
+  /* positions */
+  .p-term{grid-column:1/2;grid-row:1/2}
+  .p-map{grid-column:2/3;grid-row:1/2}
+  .p-stats{grid-column:1/2;grid-row:2/3}
+  .p-log{grid-column:2/3;grid-row:2/3}
+  /* terminal */
+  #terminal { height: calc(100% - 48px); background:rgba(0,0,0,0.12); border-radius:6px; padding:10px; overflow:auto; color:#bfffd4; font-size:13px; line-height:1.35; }
+  #cmd { width:100%; margin-top:8px; padding:10px; border-radius:8px; border:1px solid rgba(0,255,140,0.06); background:rgba(0,0,0,0.14); color:var(--neon); font-family:monospace; font-size:14px; outline:none }
+  .cursor{display:inline-block;width:8px;animation:blink 900ms steps(2) infinite}
+  @keyframes blink{0%{opacity:1}50%{opacity:0}100%{opacity:1}}
+  /* stats */
+  .stat { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+  .bar { height:12px; background:rgba(255,255,255,0.03); border-radius:8px; overflow:hidden; flex:1; margin-left:10px }
+  .bar > i { display:block; height:100%; width:0; background:linear-gradient(90deg,#00ff88,#00b384); transition:width 140ms linear }
+  .meter-label { font-weight:800; color:#dfffe8; font-size:13px }
+  /* map */
+  #map { height:100%; border-radius:8px; background:linear-gradient(180deg,#001611,#021a14); position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; }
+  svg.network { width:100%; height:100%; }
+  .node { fill:#00ff7a; stroke:#042; stroke-width:1.2px; filter: drop-shadow(0 0 6px rgba(0,255,120,0.12)); cursor:pointer; }
+  .link { stroke: rgba(0,255,120,0.12); stroke-width:2; stroke-linecap:round; filter: drop-shadow(0 0 8px rgba(0,255,120,0.06)); }
+  .node-label { fill:#bfffd4; font-size:12px; font-family:monospace; pointer-events:none }
+  /* log feed */
+  #feed { height:100%; background:rgba(0,0,0,0.06); padding:10px; border-radius:6px; overflow:auto; color:#bfffd4; font-size:13px; line-height:1.28; }
+  #feed .time { color:var(--muted); margin-right:8px }
+  /* faux window chrome */
+  .chrome { position:absolute; left:12px; top:8px; right:12px; height:8px; display:flex; gap:8px; align-items:center; z-index:8 }
+  .dot { width:10px; height:10px; border-radius:50% }
+  .d1{background:#ff5f56} .d2{background:#ffbd2e} .d3{background:#27c93f}
+  /* header small */
+  header{ display:flex; justify-content:space-between; gap:12px; align-items:center; margin-bottom:8px }
+  .brand { font-weight:900 }
+  .controls { display:flex; gap:8px }
+  button.btn{ background:linear-gradient(90deg,#00b37a,#01884f); color:#021; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; font-weight:800 }
+  /* tooltip */
+  .tooltip { position:absolute; padding:8px 10px; background:rgba(0,0,0,0.7); border:1px solid rgba(0,255,140,0.06); border-radius:6px; color:#dfffe8; font-size:12px; pointer-events:none; z-index:30 }
+  /* responsive */
+  @media(max-width:900px){
+    .wrap{grid-template-columns:1fr;grid-template-rows:auto auto auto auto;padding:8px}
+    .p-term,.p-map,.p-stats,.p-log{grid-column:auto;grid-row:auto}
+  }
+</style>
 </head>
 <body>
-  <div id="scanlines" aria-hidden="true"></div>
-  <div id="vignette" aria-hidden="true"></div>
+  <div id="scanlines"></div>
+  <div id="vign"></div>
 
-  <div id="loading-overlay" role="status">
-    <div class="loader-title neon">SYSTEM INITIALIZING</div>
-    <div class="loader-sub">BELTAH LAB — CINEMATIC FRONTEND DEMO</div>
-    <div class="progress-shell" aria-hidden="true"><div class="progress-bar" id="loadBar"></div></div>
-    <div class="scramble" id="scrambleText">Boot sequence: [..........]</div>
+  <div style="display:flex;gap:12px;align-items:center;padding:12px">
+    <div style="font-weight:900;font-size:18px;color:#caffde">BELTAH CYBERLAB</div>
+    <div style="color:var(--muted);font-size:13px">— Demo Simulator</div>
+    <div style="flex:1"></div>
+    <div class="controls">
+      <button class="btn" id="demoSeq">Play Demo</button>
+      <button class="btn" id="clearLogs">Clear Logs</button>
+    </div>
   </div>
 
-  <main class="app" id="app" style="display:none">
-    <section class="panel status" aria-labelledby="statusTitle">
-      <div class="title" id="statusTitle">System Status</div>
-      <div id="statusBody">
-        <div class="stat-row"><div class="stat-left">Time</div><div class="stat-right" id="time-display">--:--:--</div></div>
-
-        <div class="stat-row"><div class="stat-left">CPU Load</div><div class="stat-right" id="cpuPercent">0%</div></div>
-        <div class="meter" aria-hidden="true"><div class="fill" id="cpuBar" style="width:0%"></div></div>
-
-        <div style="height:8px"></div>
-
-        <div class="stat-row"><div class="stat-left">Memory</div><div class="stat-right" id="memPercent">0%</div></div>
-        <div class="meter"><div class="fill" id="memBar" style="width:0%"></div></div>
-
-        <div style="height:12px"></div>
-
-        <div class="stat-row"><div class="stat-left">Network Health</div><div class="stat-right" id="netHealth">Stable</div></div>
-        <div class="meter"><div class="fill" id="netBar" style="width:62%"></div></div>
-
-        <div style="height:12px"></div>
-        <div class="small">Simulated metrics — visual only.</div>
-      </div>
+  <main class="wrap" id="lab">
+    <!-- TERMINAL -->
+    <section class="panel p-term" aria-label="Terminal">
+      <div class="chrome"><div class="dot d1"></div><div class="dot d2"></div><div class="dot d3"></div></div>
+      <div class="title">TERMINAL CONSOLE</div>
+      <div id="terminal" aria-live="polite"></div>
+      <input id="cmd" placeholder="Type a command (help / scan / ping <node> / clear)" autocomplete="off" />
+      <div class="small" style="margin-top:8px">All actions are simulated for demonstration.</div>
     </section>
 
-    <section class="panel terminal" aria-labelledby="terminalTitle">
-      <div class="title" id="terminalTitle">Interactive Terminal</div>
-      <div id="terminal-box" aria-live="polite"></div>
-      <input id="term-input" aria-label="Terminal input" autocomplete="off" placeholder="Type a simulated command and press Enter — e.g. scan-continents" />
-      <div style="height:6px"></div>
-      <div class="small">Commands are simulated. Type <b>help</b> to see fake commands.</div>
-    </section>
+    <!-- NETWORK MAP -->
+    <section class="panel p-map" aria-label="Network Map">
+      <div class="chrome"><div class="dot d1"></div><div class="dot d2"></div><div class="dot d3"></div></div>
+      <div class="title">NETWORK MAP</div>
+      <div id="map">
+        <!-- simple node graph (SVG) -->
+        <svg class="network" viewBox="0 0 800 450" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <radialGradient id="g" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#00ff9b" stop-opacity="0.9"/><stop offset="1" stop-color="#00ff9b" stop-opacity="0.05"/></radialGradient>
+          </defs>
 
-    <section class="panel network" aria-labelledby="networkTitle">
-      <div class="title" id="networkTitle">Africa Network Grid</div>
-      <div id="map-container">
-        <div id="africa-map" role="img" aria-label="Africa activity map">
-          <svg id="africa-svg" viewBox="0 0 800 800" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%">
-            <rect width="100%" height="100%" fill="transparent"></rect>
-            <g id="countries" transform="translate(60,40) scale(0.75)">
-              <path class="country" id="ng" data-name="Nigeria" d="M420 230 L440 240 L450 260 L460 300 L450 330 L420 350 L400 330 L390 300 L397 280 Z"></path>
-              <path class="country" id="eg" data-name="Egypt" d="M500 110 L570 110 L590 130 L580 150 L540 150 L520 130 Z"></path>
-              <path class="country" id="za" data-name="South Africa" d="M430 520 L470 525 L480 550 L460 570 L430 560 L410 540 Z"></path>
-              <path class="country" id="ke" data-name="Kenya" d="M520 320 L540 330 L550 350 L540 360 L520 350 L510 340 Z"></path>
-              <path class="country" id="ci" data-name="Côte d'Ivoire" d="M340 270 L360 280 L370 300 L345 310 L330 295 Z"></path>
-              <path class="country" id="ma" data-name="Morocco" d="M280 90 L300 85 L320 110 L300 120 L280 110 Z"></path>
-              <path class="country" id="dz" data-name="Algeria" d="M320 150 L360 145 L380 170 L355 190 L320 180 Z"></path>
-              <circle class="ping" id="ping1" cx="0" cy="0" r="6"></circle>
+          <!-- links -->
+          <line class="link" id="l1" x1="150" y1="120" x2="350" y2="90" />
+          <line class="link" id="l2" x1="350" y1="90" x2="620" y2="100" />
+          <line class="link" id="l3" x1="350" y1="90" x2="350" y2="320" />
+          <line class="link" id="l4" x1="150" y1="120" x2="200" y2="320" />
+
+          <!-- nodes -->
+          <g id="nodes">
+            <g class="nodeGroup" data-id="N1" transform="translate(150,120)">
+              <circle class="node" r="12"></circle>
+              <text class="node-label" x="20" y="6">Alpha</text>
             </g>
-          </svg>
-        </div>
-        <div style="height:8px"></div>
-        <div class="small">Hover a country to show a simulated status. Click to trigger a ping event.</div>
+            <g class="nodeGroup" data-id="N2" transform="translate(350,90)">
+              <circle class="node" r="12"></circle>
+              <text class="node-label" x="20" y="6">Bravo</text>
+            </g>
+            <g class="nodeGroup" data-id="N3" transform="translate(620,100)">
+              <circle class="node" r="12"></circle>
+              <text class="node-label" x="20" y="6">Charlie</text>
+            </g>
+            <g class="nodeGroup" data-id="N4" transform="translate(200,320)">
+              <circle class="node" r="12"></circle>
+              <text class="node-label" x="20" y="6">Delta</text>
+            </g>
+            <g class="nodeGroup" data-id="N5" transform="translate(350,320)">
+              <circle class="node" r="12"></circle>
+              <text class="node-label" x="20" y="6">Echo</text>
+            </g>
+          </g>
+        </svg>
+      </div>
+      <div class="small" style="margin-top:8px">Click a node to ping it (simulated).</div>
+    </section>
+
+    <!-- STATS -->
+    <section class="panel p-stats" aria-label="System Stats">
+      <div class="chrome"><div class="dot d1"></div><div class="dot d2"></div><div class="dot d3"></div></div>
+      <div class="title">SYSTEM DASHBOARD</div>
+      <div class="stat"><div class="meter-label">CPU</div><div class="bar"><i id="cpuBar"></i></div><div style="width:48px;text-align:right" id="cpuVal">0%</div></div>
+      <div class="stat"><div class="meter-label">MEMORY</div><div class="bar"><i id="memBar"></i></div><div style="width:48px;text-align:right" id="memVal">0%</div></div>
+      <div class="stat"><div class="meter-label">NETWORK</div><div class="bar"><i id="netBar"></i></div><div style="width:48px;text-align:right" id="netVal">0%</div></div>
+
+      <div style="height:12px"></div>
+      <div class="small">Device Info</div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <div style="flex:1;padding:8px;border-radius:8px;background:rgba(0,0,0,0.06)"><div style="color:#caffde;font-weight:800">Visitor</div><div class="small" id="visitorInfo">Unknown</div></div>
+        <div style="flex:1;padding:8px;border-radius:8px;background:rgba(0,0,0,0.06)"><div style="color:#caffde;font-weight:800">Connection</div><div class="small" id="connInfo">Unknown</div></div>
       </div>
     </section>
 
-    <section class="panel matrix" aria-labelledby="matrixTitle">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div class="title" id="matrixTitle">Live Log Feed</div>
-        <div id="clock" aria-live="polite">--:--:--</div>
-      </div>
-      <div id="log-feed" role="log" aria-live="polite"></div>
+    <!-- LOG FEED -->
+    <section class="panel p-log" aria-label="Live Logs">
+      <div class="chrome"><div class="dot d1"></div><div class="dot d2"></div><div class="dot d3"></div></div>
+      <div class="title">LIVE ACTIVITY</div>
+      <div id="feed" role="log" aria-live="polite"></div>
     </section>
   </main>
 
 <script>
-/* ===================== Loading overlay behavior ===================== */
-(function(){
-  const loadBar = document.getElementById('loadBar');
-  const loading = document.getElementById('loading-overlay');
-  const scramble = document.getElementById('scrambleText');
-  let pct = 0;
-  const steps = 25;
-  // animate progress and scramble text for ~2.5 seconds
-  const id = setInterval(()=>{
-    pct += Math.random()*6 + 2;
-    if(pct > 100) pct = 100;
-    loadBar.style.width = pct + '%';
-    scramble.textContent = 'Boot sequence: [' + ('#'.repeat(Math.round(pct/5))).padEnd(20, '.') + ']';
-    if(pct >= 100) {
-      clearInterval(id);
-      setTimeout(()=>{ loading.style.display = 'none'; document.getElementById('app').style.display = 'grid'; initApp(); }, 500);
+/* ======= Helpers ======= */
+function now(){ return new Date().toLocaleTimeString(); }
+function rand(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+function el(id){ return document.getElementById(id); }
+function logFeed(text){
+  const feed = el('feed');
+  const d = document.createElement('div');
+  const t = document.createElement('span'); t.className='time'; t.textContent = `[${now()}] `;
+  d.appendChild(t);
+  d.appendChild(document.createTextNode(text));
+  feed.appendChild(d);
+  // cap lines for perf
+  if(feed.children.length > 700) feed.removeChild(feed.firstChild);
+  feed.scrollTop = feed.scrollHeight;
+}
+
+/* ======= Metrics ======= */
+let metricsTimer = null;
+function startMetrics(){
+  const cpuBar = el('cpuBar'), memBar = el('memBar'), netBar = el('netBar');
+  const cpuVal = el('cpuVal'), memVal = el('memVal'), netVal = el('netVal');
+  function update(){
+    const cpu = Math.max(3, Math.min(98, Math.round(8 + Math.random()*80 + Math.sin(Date.now()/800)*6)));
+    const mem = Math.max(6, Math.min(96, Math.round(20 + Math.random()*60 + Math.cos(Date.now()/1200)*6)));
+    const net = Math.round(40 + Math.random()*55);
+    cpuBar.style.width = cpu + '%'; memBar.style.width = mem + '%'; netBar.style.width = net + '%';
+    cpuVal.textContent = cpu + '%'; memVal.textContent = mem + '%'; netVal.textContent = net + '%';
+  }
+  update(); metricsTimer = setInterval(update, 900);
+}
+startMetrics();
+
+/* ======= Live log generator ======= */
+const verbs = ['ACCESS', 'AUTH_FAIL', 'TRACE', 'TLS', 'FIREWALL', 'BEACON', 'PROBE', 'PING', 'ROUTE'];
+const subjects = ['NODE','AGENT','SERVICE','PROC','USER'];
+function genLog(){
+  const v = verbs[rand(0,verbs.length-1)];
+  const s = subjects[rand(0,subjects.length-1)];
+  const id = Math.random().toString(36).slice(2,8).toUpperCase();
+  const ip = `${rand(10,200)}.${rand(0,255)}.${rand(0,255)}.${rand(1,250)}`;
+  return `[${v}] ${s} ${id} • IP ${ip}:${[22,80,443,8080,9001][rand(0,4)]} • THR ${rand(1,99)}%`;
+}
+let logTimer = setInterval(()=> logFeed(genLog()), 140);
+
+/* ======= Terminal behavior ======= */
+const terminal = el('terminal');
+const cmd = el('cmd');
+
+function termWrite(text, speed=8){
+  return new Promise(res=>{
+    const div = document.createElement('div');
+    terminal.appendChild(div);
+    let i=0;
+    const tick = setInterval(()=>{
+      div.innerHTML = text.slice(0,i++) + '<span class="cursor">█</span>';
+      terminal.scrollTop = terminal.scrollHeight;
+      if(i>text.length){ clearInterval(tick); div.innerHTML = text; terminal.scrollTop = terminal.scrollHeight; setTimeout(res,100); }
+    }, speed);
+  });
+}
+
+async function handleCommand(raw){
+  if(!raw) return;
+  const echo = document.createElement('div');
+  echo.innerHTML = `<span style="color:#9df5b0">[${now()}]</span> &nbsp;<b>${raw.replace(/</g,'&lt;')}</b>`;
+  terminal.appendChild(echo);
+  terminal.scrollTop = terminal.scrollHeight;
+  const parts = raw.split(/\s+/);
+  const cmdWord = parts[0].toLowerCase();
+  if(cmdWord === 'help'){
+    await termWrite('Available commands: help, scan, ping <node>, nodes, clear',10);
+  } else if(cmdWord === 'scan'){
+    await termWrite('Initiating network sweep (simulated)…',12);
+    for(let i=0;i<5;i++){
+      await new Promise(r=>setTimeout(r, rand(200,420)));
+      const n = ['Alpha','Bravo','Charlie','Delta','Echo'][rand(0,4)];
+      await termWrite(`Probe ${n}: OK`,10);
     }
-  }, 90);
+    await termWrite('Sweep complete — no real devices touched.',12);
+  } else if(cmdWord === 'ping'){
+    const target = parts[1] || '';
+    if(!target){ await termWrite('Usage: ping <node>',10); return; }
+    pingNode(target);
+    await termWrite(`Ping sent to ${target} (simulated)`,10);
+  } else if(cmdWord === 'nodes'){
+    await termWrite('Nodes: Alpha, Bravo, Charlie, Delta, Echo',10);
+  } else if(cmdWord === 'clear'){
+    terminal.innerHTML = '';
+  } else {
+    await termWrite('Command not found. Try help.',10);
+  }
+}
+cmd.addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter'){ handleCommand(cmd.value.trim()); cmd.value=''; }
+});
+
+/* ======= Node interactivity ======= */
+const nodeGroups = document.querySelectorAll('.nodeGroup');
+nodeGroups.forEach(g=>{
+  g.addEventListener('click', ()=>{
+    const id = g.getAttribute('data-id');
+    const label = g.querySelector('text').textContent;
+    pingNode(label);
+    logFeed(`[MANUAL] Pinged ${label}`);
+  });
+  g.addEventListener('mouseenter', ()=>{
+    const lbl = g.querySelector('text').textContent;
+    showTooltip(event, lbl + ' — OK');
+  });
+  g.addEventListener('mouseleave', hideTooltip);
+});
+
+/* simple ping animation: pulse the node and log */
+function pingNode(label){
+  // find group by label
+  let target = null;
+  nodeGroups.forEach(g=>{
+    if(g.querySelector('text').textContent.toLowerCase() === label.toLowerCase() || g.getAttribute('data-id') === label) target = g;
+  });
+  if(!target){
+    // no exact match: still create a fake ping entry
+    logFeed(`[PING] ${label} not found (simulated)`);
+    return;
+  }
+  const circle = target.querySelector('circle');
+  circle.style.transition = 'transform 260ms ease, opacity 260ms ease';
+  circle.style.transform = 'scale(1.8)';
+  circle.style.opacity = '1';
+  setTimeout(()=>{ circle.style.transform = 'scale(1)'; }, 260);
+  logFeed(`[PING] ${label} • RTT ${rand(12,230)} ms`);
+}
+
+/* ======= visitor device detection (best-effort) ======= */
+function detectVisitor(){
+  let ua = navigator.userAgent || 'Unknown';
+  let device = 'Unknown device';
+  if(/android/i.test(ua)) device = 'Android device';
+  else if(/iphone|ipad/i.test(ua)) device = 'iPhone / iPad';
+  else if(/macintosh/i.test(ua)) device = 'Mac';
+  else if(/windows/i.test(ua)) device = 'Windows PC';
+  el('visitorInfo').textContent = device;
+  // connection info (best-effort)
+  const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  if(conn){
+    el('connInfo').textContent = `${conn.effectiveType || 'unknown'} • ${conn.downlink || '-'} Mbps`;
+  } else {
+    el('connInfo').textContent = 'Unknown';
+  }
+}
+detectVisitor();
+
+/* ======= Demo sequence button ======= */
+document.getElementById('demoSeq').addEventListener('click', async ()=>{
+  // short cinematic demo
+  logFeed('[DEMO] Starting cinematic demo sequence');
+  await termWrite('BOOT: BELTAH CYBERLAB DEMO',8);
+  await new Promise(r=>setTimeout(r,200));
+  await termWrite('Loading modules: network, probes, ui',8);
+  await new Promise(r=>setTimeout(r,300));
+  await termWrite('Spawning simulated pings...',8);
+  ['Alpha','Bravo','Charlie','Delta','Echo'].forEach((n,i)=>setTimeout(()=>{ pingNode(n); }, 600 + i*250));
+  setTimeout(()=>logFeed('[DEMO] Sequence complete'), 2000);
+});
+
+/* ======= Clear logs ======= */
+document.getElementById('clearLogs').addEventListener('click', ()=>{ el('feed').innerHTML=''; logFeed('[USER] Cleared logs'); });
+
+/* ======= start with a few lines in terminal ======= */
+(async function intro(){
+  await termWrite('WELCOME — BELTAH CYBERLAB (SIMULATED)',8);
+  await termWrite('Type "help" for commands. This is a harmless demo.',10);
+  logFeed('[SYS] Live feed started (simulation)');
 })();
 
-/* ===================== App Initialization ===================== */
-function initApp(){
-  initClock();
-  initMetrics();
-  initTerminal();
-  initLogFeed();
-  initMapInteractions();
-  // throttling: pause log generation when page hidden
-  document.addEventListener('visibilitychange', ()=> {
-    if(document.hidden) { pauseGenerators(); } else { resumeGenerators(); }
-  });
-}
-
-/* ===================== Clock ===================== */
-function initClock(){
-  const clockEls = [document.getElementById('time-display'), document.getElementById('clock')];
-  function tick(){
-    const d = new Date();
-    const s = d.toLocaleTimeString();
-    clockEls.forEach(el => el.textContent = s);
+/* ======= tooltip ======= */
+let tt = null;
+function showTooltip(e, text){
+  if(!tt){
+    tt = document.createElement('div'); tt.className='tooltip'; document.body.appendChild(tt);
   }
-  tick(); setInterval(tick, 1000);
+  tt.textContent = text;
+  const x = (e.clientX || (e.touches && e.touches[0].clientX)) + 12;
+  const y = (e.clientY || (e.touches && e.touches[0].clientY)) + 12;
+  tt.style.left = x + 'px'; tt.style.top = y + 'px'; tt.style.display = 'block';
 }
+function hideTooltip(){ if(tt) tt.style.display='none'; }
 
-/* ===================== Simulated CPU/Mem metrics ===================== */
-let metricInterval = null;
-function initMetrics(){
-  const cpuBar = document.getElementById('cpuBar');
-  const memBar = document.getElementById('memBar');
-  const cpuPercent = document.getElementById('cpuPercent');
-  const memPercent = document.getElementById('memPercent');
-  const netBar = document.getElementById('netBar');
-  const netHealth = document.getElementById('netHealth');
+/* Pause generators when tab hidden to save CPU */
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden){ clearInterval(logTimer); clearInterval(metricsTimer); } else { logTimer = setInterval(()=> logFeed(genLog()), 140); startMetrics(); }
+});
 
-  function update(){
-    // random jitter but constrained
-    const cpu = Math.round(Math.max(3, Math.min(98, 12 + Math.random()*80 + Math.sin(Date.now()/1200)*8)));
-    const mem = Math.round(Math.max(6, Math.min(94, 20 + Math.random()*60 + Math.cos(Date.now()/1700)*6)));
-    cpuBar.style.width = cpu + '%';
-    memBar.style.width = mem + '%';
-    cpuPercent.textContent = cpu + '%';
-    memPercent.textContent = mem + '%';
-    // network simulated health
-    const n = Math.round(40 + Math.random()*55);
-    netBar.style.width = n + '%';
-    netHealth.textContent = n > 60 ? 'Stable' : (n > 35 ? 'Degraded' : 'Attention');
-  }
-
-  update();
-  metricInterval = setInterval(update, 900);
+/* helper: generate log for resume (used above) */
+function genLog(){ return genLogHelper(); }
+function genLogHelper(){
+  const v = verbs[rand(0,verbs.length-1)];
+  const s = subjects[rand(0,subjects.length-1)];
+  const id = Math.random().toString(36).slice(2,8).toUpperCase();
+  const ip = `${rand(10,200)}.${rand(0,255)}.${rand(0,255)}.${rand(1,250)}`;
+  return `[${v}] ${s} ${id} • IP ${ip}:${[22,80,443,8080,9001][rand(0,4)]} • THR ${rand(1,99)}%`;
 }
+/* keep verbs/subjects used in resume */
+const verbs = ['ACCESS','AUTH_FAIL','TRACE','TLS','FIREWALL','BEACON','PROBE','PING','ROUTE'];
+const subjects = ['NODE','AGENT','SERVICE','PROC','USER'];
 
-/* ===================== Terminal simulation ===================== */
-function initTerminal(){
-  const box = document.getElementById('terminal-box');
-  const input = document.getElementById('term-input');
-
-  // helper: type text into box char-by-char
-  function typeOutput(text, speed=14, cls=''){
-    return new Promise(resolve=>{
-      const line = document.createElement('div');
-      if(cls) line.className = cls;
-      box.appendChild(line);
-      box.scrollTop = box.scrollHeight;
-      let i=0;
-      const t = setInterval(()=> {
-        line.innerHTML = escapeHtml(text.slice(0,i++)) + '<span class="cursor">█</span>';
-        box.scrollTop = box.scrollHeight;
-        if(i > text.length){ clearInterval(t); line.innerHTML = escapeHtml(text); box.scrollTop = box.scrollHeight; setTimeout(resolve, 60); }
-      }, speed);
-    });
-  }
-
-  // escape html
-  function escapeHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
-  // initial greeting
-  (async function greet(){
-    await typeOutput('BELTAH LAB — INTERFACE MODE [SIMULATION]', 10);
-    await typeOutput('Type "help" to view simulated commands.', 12);
-  })();
-
-  // fake command handlers
-  const commands = {
-    help: async ()=> {
-      await typeOutput('Available (simulated): help, scan-africa, list-dishes, ping <country>, clear', 10);
-    },
-    'scan-africa': async ()=> {
-      await typeOutput('Scanning Africa network grid... (simulation)', 10);
-      // trigger pings across random countries
-      const ids = ['ng','eg','za','ke','ci','ma','dz'];
-      for(let i=0;i<6;i++){
-        pingCountry(ids[Math.floor(Math.random()*ids.length)]);
-        await new Promise(r=>setTimeout(r, 300));
-        await typeOutput(`Probe ${i+1}/6: ok`, 8);
-      }
-      await typeOutput('Scan complete. No real devices accessed (demo only).', 10);
-    },
-    'list-dishes': async ()=> {
-      await typeOutput('DISH ARRAY: Alpha-D1, Bravo-D2, Charlie-D3, Delta-D4, Echo-D5, Foxtrot-D6', 8);
-    },
-    clear: async ()=> { box.innerHTML=''; },
-    whoami: async ()=> { await typeOutput('beltah@lab', 8); }
-  };
-
-  // on Enter
-  input.addEventListener('keydown', async (e)=>{
-    if(e.key === 'Enter') {
-      const raw = input.value.trim();
-      input.value = '';
-      if(!raw) return;
-      // echo typed command
-      const echo = document.createElement('div'); echo.innerHTML = `<span style="color:#9df5b0">[${new Date().toLocaleTimeString()}]</span> &nbsp; <b>${escapeHtml(raw)}</b>`; box.appendChild(echo);
-      box.scrollTop = box.scrollHeight;
-      const parts = raw.split(/\s+/);
-      const cmd = parts[0].toLowerCase();
-      if(commands[cmd]) {
-        await commands[cmd](parts.slice(1));
-      } else if(cmd === 'ping' && parts[1]) {
-        // ping <country>
-        const id = lookupCountryId(parts.slice(1).join(' '));
-        if(id) { pingCountry(id); await typeOutput(`Ping sent to ${parts.slice(1).join(' ')} (simulated)`, 10); }
-        else await typeOutput('Unknown target. Try a country name (e.g. Kenya).', 10);
-      } else {
-        await typeOutput('Command not found (sim). Try help.', 12);
-      }
-    }
-  });
-}
-
-/* ===================== Log Feed (high-frequency) ===================== */
-let logInterval = null;
-let logPaused = false;
-function initLogFeed(){
-  const feed = document.getElementById('log-feed');
-
-  // supply a pool of phrases to compose cryptic logs
-  const verbs = ['ACCESS_ATTEMPT','AUTH_FAIL','CPU_WARN','PROC_DROP','ROUTE_OK','TLS_HANDSHAKE','BEACON','FIREWALL','FUZ_PKT','SIGNAL'];
-  const users = ['USER','AGENT','NODE','SERVICE','PROC','ID'];
-  const ids = ()=> Math.floor(Math.random()*900000 + 1000).toString(16).toUpperCase().slice(0,6);
-  const ips = ()=> `${Math.floor(10+Math.random()*200)}.${Math.floor(0+Math.random()*255)}.${Math.floor(0+Math.random()*255)}.${Math.floor(1+Math.random()*250)}`;
-
-  function genLine(){
-    const verb = verbs[Math.floor(Math.random()*verbs.length)];
-    const u = users[Math.floor(Math.random()*users.length)];
-    const port = [22,80,443,8080,1883,53][Math.floor(Math.random()*6)];
-    return `[${verb}] ${u} ${ids()} • IP ${ips()}:${port} • THR ${Math.floor(Math.random()*98)}%`;
-  }
-
-  function pushLine(){
-    if(logPaused) return;
-    const el = document.createElement('div'); el.textContent = genLine();
-    feed.appendChild(el);
-    // keep limited height for performance
-    while(feed.children.length > 600) feed.removeChild(feed.firstChild);
-    feed.scrollTop = feed.scrollHeight;
-  }
-
-  // high frequency: about 6-9 lines per second (every 110-200 ms).
-  logInterval = setInterval(()=>{ pushLine(); }, 150);
-
-  // small visible demo startup lines
-  feed.appendChild(Object.assign(document.createElement('div'), {textContent: '[SYS] Live log feed initialized (simulated)'}));
-  feed.appendChild(Object.assign(document.createElement('div'), {textContent: '[SYS] In demo mode — no network scanning performed.'}));
-}
-
-function pauseGenerators(){ logPaused = true; if(metricInterval) clearInterval(metricInterval); }
-function resumeGenerators(){ logPaused = false; if(!metricInterval) initMetrics(); }
-
-/* ===================== Map interactions (simple) ===================== */
-function initMapInteractions(){
-  const countries = document.querySelectorAll('.country');
-  countries.forEach(el=>{
-    el.addEventListener('mouseenter', ()=>{
-      el.classList.add('active');
-      showCountryTooltip(el.dataset.name);
-    });
-    el.addEventListener('mouseleave', ()=>{
-      el.classList.remove('active');
-      hideCountryTooltip();
-    });
-    el.addEventListener('click', ()=>{
-      pingCountry(el.id);
-      appendLog(`[MAP] Manual ping triggered for ${el.dataset.name}`);
-    });
-  });
-}
-
-// simple tooltip (using title attribute fallback)
-function showCountryTooltip(name){
-  // we append a small temporary log message in terminal & feed to simulate tooltip
-  appendLog(`[MAP] Hover: ${name} — status: OK (simulated)`);
-}
-function hideCountryTooltip(){ /* no-op for now */ }
-
-/* Small visual ping animation on a country (by id) */
-function pingCountry(id){
-  const svg = document.getElementById('africa-svg');
-  const target = document.getElementById(id);
-  if(!target) return;
-  // compute centroid of path bounding box
-  const bbox = target.getBBox();
-  const cx = bbox.x + bbox.width/2;
-  const cy = bbox.y + bbox.height/2;
-  const ping = document.getElementById('ping1');
-  ping.setAttribute('cx', cx);
-  ping.setAttribute('cy', cy);
-  ping.style.opacity = '1';
-  ping.style.transition = 'opacity 600ms ease';
-  setTimeout(()=> { ping.style.opacity = '0'; }, 80);
-  // also flash country
-  target.classList.add('active');
-  setTimeout(()=> target.classList.remove('active'), 650);
-  // log
-  appendLog(`[PING] ${target.dataset.name} pinged (simulated)`);
-}
-
-/* helper for logging to the live feed (and terminal) */
-function appendLog(text){
-  const feed = document.getElementById('log-feed');
-  const d = document.createElement('div');
-  d.textContent = `[${new Date().toLocaleTimeString()}] ${text}`;
-  feed.appendChild(d);
-  while(feed.children.length > 700) feed.removeChild(feed.firstChild);
-  feed.scrollTop = feed.scrollHeight;
-
-  // also mirror to terminal minimal echo
-  const termBox = document.getElementById('terminal-box');
-  const line = document.createElement('div');
-  line.style.color = '#9fe8c8';
-  line.textContent = `${text}`;
-  termBox.appendChild(line);
-  termBox.scrollTop = termBox.scrollHeight;
-}
-
-/* country id lookup by name (case-insensitive, simple heuristic) */
-function lookupCountryId(name){
-  if(!name) return null;
-  name = name.toLowerCase().replace(/[^a-z\s]/g,'').trim();
-  const map = {
-    'nigeria':'ng','kenya':'ke','egypt':'eg','south africa':'za','southafrica':'za','cote d\'ivoire':'ci','ivory coast':'ci','morocco':'ma','algeria':'dz'
-  };
-  return map[name] || null;
-}
-
-/* ===================== Data structures (mock backend responses) ===================== */
-/* The front-end will use these JS objects as if they were returned by a real backend.
-   They are pure simulation data and are used to drive UI. */
-const mockBackend = {
-  system: {
-    version: 'beltah-1.0-demo',
-    uptime: 12456,
-    nodes: 12
-  },
-  dishes: [
-    { id: 'Alpha-D1', signal: 0.86 },
-    { id: 'Bravo-D2', signal: 0.59 },
-    { id: 'Charlie-D3', signal: 0.72 },
-    { id: 'Delta-D4', signal: 0.34 },
-    { id: 'Echo-D5', signal: 0.47 },
-    { id: 'Foxtrot-D6', signal: 0.91 },
-  ],
-  regions: [
-    { code: 'NG', name: 'Nigeria', status: 'online', score: 82 },
-    { code: 'KE', name: 'Kenya', status: 'online', score: 74 },
-    { code: 'EG', name: 'Egypt', status: 'online', score: 64 },
-    { code: 'ZA', name: 'South Africa', status: 'online', score: 69 },
-  ],
-};
-
-/* ===================== End of script ===================== */
 </script>
 </body>
 </html>
