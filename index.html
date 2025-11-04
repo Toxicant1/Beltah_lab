@@ -8,88 +8,56 @@
 </head>
 <body>
 
-  <!-- Screen Effects -->
+  <!-- UX Overlays -->
   <div id="scanlines"></div>
   <div id="vignette"></div>
 
   <!-- Header -->
   <header class="top-bar">
-    <h1 class="brand">BELTAH CYBERLAB</h1>
-    <span class="subtitle">Africa Network Simulation Interface</span>
+    <h1 class="brand glitch">BELTAH CYBERLAB</h1>
+    <span class="subtitle">⟐ Africa Network Simulation ⟐</span>
     <div class="controls">
-      <button id="demoSeq" class="btn">▶ Demo</button>
-      <button id="clearLogs" class="btn danger">✖ Clear Logs</button>
+      <button id="demoSeq" class="btn green">▶ Demo</button>
+      <button id="clearLogs" class="btn red">✖ Clear Logs</button>
     </div>
   </header>
 
-  <!-- Main Layout -->
+  <!-- Layout -->
   <main class="wrap">
 
-    <!-- Terminal Panel -->
+    <!-- Terminal -->
     <section class="panel terminal">
-      <div class="chrome"><div class="dot d1"></div><div class="dot d2"></div><div class="dot d3"></div></div>
+      <div class="chrome"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
       <h2 class="panel-title">TERMINAL CONSOLE</h2>
       <div id="terminal"></div>
-      <input id="cmd" type="text" placeholder="Type a command (help / scan / ping <node> / clear)" />
+      <input id="cmd" type="text" autocomplete="off" placeholder="> Enter command (type help)" />
     </section>
 
-    <!-- Africa Map Panel -->
+    <!-- Network Map -->
     <section class="panel map">
-      <div class="chrome"><div class="dot d1"></div><div class="dot d2"></div><div class="dot d3"></div></div>
+      <div class="chrome"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
       <h2 class="panel-title">AFRICA NETWORK MAP</h2>
-      <div id="map">
-        <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid meet" class="network">
-          <defs>
-            <radialGradient id="pulse" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stop-color="#00ff88" stop-opacity="0.9"/>
-              <stop offset="100%" stop-color="#00ff88" stop-opacity="0.05"/>
-            </radialGradient>
-          </defs>
-
-          <!-- Example connections -->
-          <line class="link" x1="120" y1="220" x2="400" y2="180" />
-          <line class="link" x1="400" y1="180" x2="650" y2="220" />
-          <line class="link" x1="400" y1="180" x2="350" y2="340" />
-
-          <!-- Example country nodes -->
-          <g class="nodeGroup" data-id="Kenya" transform="translate(400,220)">
-            <circle class="node" r="12"></circle>
-            <text class="node-label" x="20" y="6">Kenya</text>
-          </g>
-          <g class="nodeGroup" data-id="Nigeria" transform="translate(200,220)">
-            <circle class="node" r="12"></circle>
-            <text class="node-label" x="20" y="6">Nigeria</text>
-          </g>
-          <g class="nodeGroup" data-id="South Africa" transform="translate(350,340)">
-            <circle class="node" r="12"></circle>
-            <text class="node-label" x="20" y="6">South Africa</text>
-          </g>
-          <g class="nodeGroup" data-id="Egypt" transform="translate(650,120)">
-            <circle class="node" r="12"></circle>
-            <text class="node-label" x="20" y="6">Egypt</text>
-          </g>
-        </svg>
-      </div>
+      <div id="map"></div>
     </section>
 
-    <!-- Stats Panel -->
+    <!-- Stats -->
     <section class="panel stats">
-      <div class="chrome"><div class="dot d1"></div><div class="dot d2"></div><div class="dot d3"></div></div>
+      <div class="chrome"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
       <h2 class="panel-title">SYSTEM METRICS</h2>
       <div class="stat"><span>CPU</span><div class="bar"><i id="cpuBar"></i></div><span id="cpuVal">0%</span></div>
-      <div class="stat"><span>MEMORY</span><div class="bar"><i id="memBar"></i></div><span id="memVal">0%</span></div>
-      <div class="stat"><span>NETWORK</span><div class="bar"><i id="netBar"></i></div><span id="netVal">0%</span></div>
+      <div class="stat"><span>RAM</span><div class="bar"><i id="memBar"></i></div><span id="memVal">0%</span></div>
+      <div class="stat"><span>NET</span><div class="bar"><i id="netBar"></i></div><span id="netVal">0%</span></div>
     </section>
 
-    <!-- Live Log Feed -->
+    <!-- Live Logs -->
     <section class="panel logs">
-      <div class="chrome"><div class="dot d1"></div><div class="dot d2"></div><div class="dot d3"></div></div>
+      <div class="chrome"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
       <h2 class="panel-title">LIVE ACTIVITY FEED</h2>
       <div id="feed"></div>
     </section>
 
   </main>
 
-  <script src="JS/app.js"></script>
+  <script src="js/app.js" defer></script>
 </body>
 </html>
