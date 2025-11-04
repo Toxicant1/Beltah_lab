@@ -3,9 +3,10 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Beltah — CyberLab Live</title>
-<style>
-/* ===== BELTAH — Single-file UI ===== */
+<title>Beltah — CyberLab Live (All-in-one)</title>
+
+<!-- ===== MAIN THEME CSS ===== -->
+<style id="beltah-main-css">
 :root{
   --bg:#030312; --ink:#00ff88; --accent:#ffd54a; --muted:rgba(0,255,136,0.12);
   --glass: rgba(6,8,12,0.62); --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, "Courier New", monospace;
@@ -24,7 +25,7 @@ html,body{height:100%;margin:0;font-family:var(--mono);background:linear-gradien
 .panel{background:var(--glass);border-radius:10px;padding:10px;border:1px solid rgba(0,255,136,0.05);box-shadow:0 6px 18px rgba(0,0,0,0.45);display:flex;flex-direction:column;min-height:120px}
 .panel-title{color:var(--accent);font-weight:700;margin-bottom:8px}
 .terminal{flex:1;display:flex;flex-direction:column;gap:8px}
-#terminalOut{background:rgba(0,0,0,0.28);border-radius:8px;padding:10px;flex:1;overflow:auto;font-size:13px;line-height:1.35}
+#terminalOut{background:rgba(0,0,0,0.28);border-radius:8px;padding:10px;flex:1;overflow:auto;font-size:13px;line-height:1.35;font-family:var(--mono)}
 .inputRow{display:flex;gap:8px;align-items:center}
 #cmd{flex:1;padding:10px;border-radius:8px;border:1px solid rgba(0,255,136,0.06);background:rgba(0,0,0,0.4);color:var(--ink)}
 .small{font-size:12px;color:var(--muted)}
@@ -44,10 +45,30 @@ svg.network{width:100%;height:100%}
 .toggle{display:inline-flex;align-items:center;gap:6px;padding:6px 8px;background:rgba(0,0,0,0.14);border-radius:8px;border:1px solid rgba(0,255,136,0.04)}
 .footer{padding:10px;font-size:12px;color:var(--muted);text-align:center}
 .badge{background:rgba(255,255,255,0.02);padding:4px 8px;border-radius:999px;border:1px solid rgba(255,255,255,0.02);font-weight:700;color:var(--accent)}
+/* small helpers for output lines */
+#line-cmd { color: #9ef5c9; }
+.line-err { color: #ffb3a7; }
 @media (max-width:900px){.layout{grid-template-columns:1fr;grid-auto-rows:auto;height:auto}.mapWrap{height:260px}}
 /* reduce motion for battery */
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
+
+<!-- ===== HACKER THEME (toggled dynamically) ===== -->
+<style id="hacker-mode-css" disabled>
+:root{
+  --bg:#07000f; --ink:#8ef0ff; --accent:#c58fff; --muted:rgba(142,240,255,0.12);
+  --glass: rgba(8,4,18,0.66); --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, "Courier New", monospace;
+}
+body { background: linear-gradient(180deg,#02000a,#0b0018 75%); color: var(--ink); }
+.header { background: linear-gradient(90deg, rgba(142,240,255,0.02), transparent); border-bottom-color: rgba(197,143,255,0.03); }
+.brand, .panel-title { color: var(--accent) !important; }
+.btn { border-color: rgba(142,240,255,0.06); background: rgba(0,16,20,0.45); color: var(--ink); }
+.panel { background: var(--glass); border-color: rgba(142,240,255,0.06); box-shadow: 0 8px 20px rgba(197,143,255,0.03); }
+.nodeLabel { fill: var(--ink); }
+.link { stroke: rgba(197,143,255,0.08) !important; }
+.feedTime { color: var(--muted) !important; }
+</style>
+
 </head>
 <body>
   <div class="header">
@@ -56,6 +77,7 @@ svg.network{width:100%;height:100%}
     <div class="controls">
       <button id="demoBtn" class="btn">▶ Demo</button>
       <button id="exportBtn" class="btn">⬇ Export</button>
+      <button id="toggleThemeBtn" class="btn">⚡ Theme</button>
       <button id="clearFeedBtn" class="btn warn">✖ Clear Feed</button>
     </div>
   </div>
@@ -65,17 +87,17 @@ svg.network{width:100%;height:100%}
       <div class="panel terminal" aria-label="Terminal">
         <div class="panel-title">TERMINAL</div>
         <div id="terminalOut" aria-live="polite"></div>
-        <div class="inputRow">
-          <input id="cmd" placeholder="type: help / scan / nodes / ping <node> / clear / loss <0-100>" autocomplete="off" />
+        <div class="inputRow" style="margin-top:8px">
+          <input id="cmd" placeholder="type: help / scan / nodes / ping <node> / trace <node> / whois <node> / clear / loss <0-60>" autocomplete="off" />
           <button id="enterBtn" class="btn">RUN</button>
         </div>
-        <div class="small">history: ↑ ↓ • click nodes to ping • packet-loss toggle below</div>
+        <div class="small">history: ↑ ↓ • click nodes to ping • packet-loss toggle below • try `whois Kenya`</div>
       </div>
 
       <div class="panel" style="min-height:160px">
         <div class="panel-title">LIVE FEED</div>
         <div id="feedBox" class="feed" aria-live="polite"></div>
-        <div class="controlsRow">
+        <div class="controlsRow" style="margin-top:10px">
           <div class="toggle small">Packet Loss: <span id="lossVal" style="min-width:34px;text-align:right;padding-left:6px">3%</span></div>
           <input id="lossRange" type="range" min="0" max="60" value="3" style="flex:1" />
           <div class="badge">v1.1</div>
@@ -138,6 +160,259 @@ svg.network{width:100%;height:100%}
 
   <div class="footer">Made for Termux & browsers • realistic sim • no libs</div>
 
+<!-- ===== Inlined database.json (window._BeltahDB) ===== -->
+<script>
+window._BeltahDB = {
+  "nodes": {
+    "Kenya": {
+      "ip": "41.79.202.10",
+      "asn": "AS36992",
+      "isp": "Safaricom Ltd",
+      "city": "Nairobi",
+      "country": "Kenya",
+      "latency_profile": "low"
+    },
+    "Nigeria": {
+      "ip": "102.89.22.1",
+      "asn": "AS37282",
+      "isp": "MTN Nigeria",
+      "city": "Lagos",
+      "country": "Nigeria",
+      "latency_profile": "medium"
+    },
+    "South Africa": {
+      "ip": "196.25.3.4",
+      "asn": "AS37138",
+      "isp": "Telkom SA",
+      "city": "Johannesburg",
+      "country": "South Africa",
+      "latency_profile": "high"
+    },
+    "Egypt": {
+      "ip": "156.209.15.9",
+      "asn": "AS36930",
+      "isp": "TE Data",
+      "city": "Cairo",
+      "country": "Egypt",
+      "latency_profile": "medium"
+    },
+    "Morocco": {
+      "ip": "196.200.100.12",
+      "asn": "AS37564",
+      "isp": "Maroc Telecom",
+      "city": "Rabat",
+      "country": "Morocco",
+      "latency_profile": "high"
+    }
+  }
+};
+</script>
+
+<!-- ===== Effects (from effects.js) ===== -->
+<script>
+(function(global){
+  function glitchText(el, intensity = 3, duration = 1200) {
+    if (!el) return;
+    const orig = el.textContent;
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<>/|\\';
+    const start = Date.now();
+    const id = setInterval(()=>{
+      const t = Date.now() - start;
+      if (t > duration) {
+        el.textContent = orig;
+        clearInterval(id);
+        return;
+      }
+      el.textContent = orig.split('').map(ch => {
+        if (Math.random() < 0.08) return chars[Math.floor(Math.random()*chars.length)];
+        return ch;
+      }).join('');
+    }, 45);
+  }
+
+  function pulseNode(nodeEl, times = 1) {
+    if (!nodeEl) return;
+    nodeEl.style.transition = 'transform 220ms ease, r 220ms ease, opacity 220ms';
+    nodeEl.style.transform = 'scale(1.9)';
+    setTimeout(()=>{ nodeEl.style.transform = 'scale(1)'; }, 220);
+  }
+
+  function rippleOnLink(x,y,svg) {
+    if (!svg) svg = document.querySelector('svg.network');
+    if (!svg) return;
+    const ns = 'http://www.w3.org/2000/svg';
+    const c = document.createElementNS(ns,'circle');
+    c.setAttribute('cx', x);
+    c.setAttribute('cy', y);
+    c.setAttribute('r', 2);
+    c.setAttribute('fill', '#00ff88');
+    c.setAttribute('opacity', '0.9');
+    svg.appendChild(c);
+    let start = null;
+    function animate(ts) {
+      if (!start) start = ts;
+      const t = ts - start;
+      const progress = Math.min(1, t/500);
+      c.setAttribute('r', 2 + progress * 60);
+      c.setAttribute('opacity', String(0.9 - progress));
+      if (progress < 1) requestAnimationFrame(animate);
+      else setTimeout(()=>svg.removeChild(c), 200);
+    }
+    requestAnimationFrame(animate);
+  }
+
+  function hookAutoPulse() {
+    const groups = document.querySelectorAll('.nodeGroup');
+    groups.forEach(g=>{
+      g.addEventListener('click', ()=> {
+        const node = g.querySelector('.node');
+        if (node) pulseNode(node);
+      });
+    });
+  }
+
+  global.BeltahEffects = {
+    glitchText, pulseNode, rippleOnLink, hookAutoPulse
+  };
+
+  document.addEventListener('DOMContentLoaded', ()=> {
+    setTimeout(()=> hookAutoPulse(), 120);
+  });
+
+})(typeof window !== 'undefined' ? window : this);
+</script>
+
+<!-- ===== Commands module (from commands.js) & registration glue ===== -->
+<script>
+(function (global) {
+  function detectAPI() {
+    const win = global || window;
+    return {
+      term: win.term || (m => { const t = document.getElementById('terminalOut'); if(t){ const d=document.createElement('div'); d.textContent=m; t.appendChild(d); t.scrollTop=t.scrollHeight } }),
+      pushFeed: win.pushFeed || (m => { const f = document.getElementById('feedBox'); if(f){ const row=document.createElement('div'); row.className='feedLine'; const time=document.createElement('div'); time.className='feedTime'; time.textContent = new Date().toLocaleTimeString(); const body=document.createElement('div'); body.textContent = m; row.appendChild(time); row.appendChild(body); f.appendChild(row); f.scrollTop=f.scrollHeight } }),
+      simPing: win.simPing || (id => { console.warn('simPing not found, fallback noop for', id); }),
+      pushSpark: win.pushSpark || (v=>{}),
+      process: win.process || (cmd => { console.warn('process not found', cmd); }),
+    };
+  }
+
+  function traceRoute(api, target) {
+    if (!target) { api.term('Usage: trace <node>'); return; }
+    const hops = Math.min(8, 4 + Math.floor(Math.random() * 6));
+    api.term(`traceroute to ${target} (${target})`);
+    api.pushFeed(`Trace started -> ${target}`);
+    let t = 0;
+    for (let i = 1; i <= hops; i++) {
+      t += 200 + Math.floor(Math.random() * 420);
+      setTimeout(() => {
+        const ip = `${Math.floor(Math.random()*223)+1}.${Math.floor(Math.random()*255)}.${Math.floor(Math.random()*255)}.${Math.floor(Math.random()*255)}`;
+        const ms = 10 + Math.floor(Math.abs(Math.sin(i + Date.now()/1000))*180) + Math.floor(Math.random()*40);
+        api.term(`${i}\t${ip}\t${ms} ms`);
+        api.pushFeed(`Trace hop ${i}: ${ip} (${ms}ms)`);
+        api.pushSpark(ms);
+      }, t);
+    }
+    setTimeout(()=> api.term('trace complete'), t+120);
+  }
+
+  function whois(api, target) {
+    if (!target) { api.term('Usage: whois <node>'); return; }
+    const db = global._BeltahDB || {};
+    const node = (db.nodes && db.nodes[target]) || null;
+    if (node) {
+      api.term(`WHOIS ${target}`);
+      api.term(`IP: ${node.ip}`);
+      api.term(`ASN: ${node.asn || 'AS???'}`);
+      api.term(`ISP: ${node.isp || 'Unknown ISP'}`);
+      api.term(`Location: ${node.city || node.country || 'Unknown'}`);
+      api.pushFeed(`Whois lookup -> ${target}`);
+    } else {
+      api.term(`No whois info for: ${target}`);
+      api.pushFeed(`Whois failed -> ${target}`);
+    }
+  }
+
+  function uptime(api) {
+    if (!global._beltahStart) global._beltahStart = Date.now();
+    const s = Math.floor((Date.now() - global._beltahStart) / 1000);
+    const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
+    api.term(`Uptime: ${h}h ${m}m ${sec}s`);
+  }
+
+  function matrix(api, seconds = 6) {
+    const t = api.term;
+    t('Entering MATRIX mode — press any key to exit.');
+    const out = document.getElementById('terminalOut');
+    const chars = "01абвгдеёжзиклмнопрстuvwxyz<>/|\\";
+    const interval = setInterval(()=> {
+      const line = Array.from({length: 64}).map(()=> chars[Math.floor(Math.random()*chars.length)]).join('');
+      t(line);
+      while (out.children.length > 400) out.removeChild(out.firstChild);
+    }, 60);
+    function stopMatrix() {
+      clearInterval(interval);
+      window.removeEventListener('keydown', stopMatrix);
+      t('Exited MATRIX mode');
+    }
+    setTimeout(()=>{ window.addEventListener('keydown', stopMatrix); }, 120);
+    setTimeout(stopMatrix, seconds * 1000);
+  }
+
+  function attack(api, target) {
+    if (!target) { api.term('Usage: attack <node>'); return; }
+    api.term(`Simulated attack initiated -> ${target}`);
+    api.pushFeed(`Attack: flood -> ${target}`);
+    let cycles = 0;
+    const id = setInterval(()=> {
+      cycles++;
+      api.pushFeed(`SYN flood -> ${target} [packets: ${cycles * 120}]`);
+      api.term(`attack -> ${target} ... ${cycles*120} pkts`);
+      api.pushSpark(100 + Math.floor(Math.random()*300));
+      if (cycles > 8) {
+        clearInterval(id);
+        api.term('attack ended (simulation)');
+        api.pushFeed('Attack simulation completed');
+      }
+    }, 500);
+  }
+
+  function registerCommands(apiArg) {
+    const api = apiArg || detectAPI();
+    global.BeltahCommands = global.BeltahCommands || {};
+    global.BeltahCommands.registered = true;
+    global.BeltahCommands.trace = target => traceRoute(api, target);
+    global.BeltahCommands.whois = target => whois(api, target);
+    global.BeltahCommands.uptime = () => uptime(api);
+    global.BeltahCommands.matrix = (s)=> matrix(api, s || 6);
+    global.BeltahCommands.attack = target => attack(api, target);
+
+    if (api.process && typeof api.process === 'function') {
+      const orig = api.process;
+      api.process = (cmd) => {
+        const parts = cmd.trim().split(/\s+/);
+        const c = parts[0].toLowerCase();
+        const arg = parts.slice(1).join(' ');
+        switch (c) {
+          case 'trace':
+          case 'traceroute': traceRoute(api, arg); return;
+          case 'whois': whois(api, arg); return;
+          case 'uptime': uptime(api); return;
+          case 'matrix': matrix(api, Number(arg)||6); return;
+          case 'attack': attack(api, arg); return;
+          case 'theme': if (arg==='hacker') { enableHackerMode(); api.term('theme toggled: hacker'); } else api.term('themes: hacker'); return;
+          default: return orig(cmd);
+        }
+      };
+    }
+    api.term('Extra commands registered: trace, whois, uptime, matrix, attack, theme');
+  }
+
+  global.registerCommands = registerCommands;
+
+})(typeof window !== 'undefined' ? window : this);
+</script>
+
+<!-- ===== Main app JS (combined and wired to commands & effects) ===== -->
 <script>
 (() => {
   // ----- Config -----
@@ -149,6 +424,7 @@ svg.network{width:100%;height:100%}
     { id: 'Morocco', base: 130, x:60, y:90 }
   ];
   const feedMax = 300, metricsTick = 800;
+
   // ----- DOM -----
   const cmd = document.getElementById('cmd');
   const enterBtn = document.getElementById('enterBtn');
@@ -157,7 +433,8 @@ svg.network{width:100%;height:100%}
   const demoBtn = document.getElementById('demoBtn');
   const exportBtn = document.getElementById('exportBtn');
   const clearFeedBtn = document.getElementById('clearFeedBtn');
-  const lossRange = document.getElementById('lossRange');
+  const toggleThemeBtn = document.getElementById('toggleThemeBtn');
+  const lossRange = document.getElementById('lossRange') || document.getElementById('lossRange') /* fallback */;
   const lossVal = document.getElementById('lossVal');
   const cpuBar = document.getElementById('cpuBar'), memBar = document.getElementById('memBar');
   const cpuTxt = document.getElementById('cpuTxt'), memTxt = document.getElementById('memTxt');
@@ -166,10 +443,17 @@ svg.network{width:100%;height:100%}
 
   // ----- State -----
   let history = [], hpos = 0;
-  let packetLoss = Number(lossRange.value); // %
+  let packetLoss = Number(document.getElementById('lossRange')?.value || 3); // %
   let feedBuf = []; // batching
   let sparkData = [];
   const maxSpark = 26;
+
+  // expose helpers for external modules
+  window.pushFeed = pushFeed;
+  window.term = term;
+  window.simPing = simPing;
+  window.pushSpark = pushSpark;
+  window.process = process;
 
   // ----- Utils -----
   const now = () => new Date().toLocaleTimeString();
@@ -183,7 +467,7 @@ svg.network{width:100%;height:100%}
     if (cls) el.className = cls;
     out.appendChild(el);
     // limit lines
-    while (out.children.length > 500) out.removeChild(out.firstChild);
+    while (out.children.length > 800) out.removeChild(out.firstChild);
     out.scrollTop = out.scrollHeight;
   }
 
@@ -221,8 +505,8 @@ svg.network{width:100%;height:100%}
     ctx.stroke();
   }
 
-  // ----- Commands -----
-  function cmd_help(){ term("help • scan • nodes • ping <node> • clear • loss <0-60> • demo"); }
+  // ----- Commands (core) -----
+  function cmd_help(){ term("help • scan • nodes • ping <node> • trace <node> • whois <node> • clear • loss <0-60> • demo • theme hacker"); }
   function cmd_nodes(){ term("Nodes: " + NODES.map(n=>n.id).join(', ')); }
   function cmd_scan(){
     term("scanning network...");
@@ -237,10 +521,24 @@ svg.network{width:100%;height:100%}
     if(!node){ term("unknown node: " + nodeId); pushFeed("Ping failed: "+nodeId); return; }
     term("ping " + node.id + " ...");
     pushFeed("ICMP -> " + node.id);
+    // visual ripple on map center of node
+    const g = Array.from(document.querySelectorAll('.nodeGroup')).find(x => (x.dataset.id||'').toLowerCase()===nodeId.toLowerCase());
+    if (g) {
+      const c = g.querySelector('.node');
+      if (c) { c.style.transform = 'scale(1.6)'; setTimeout(()=>c.style.transform='scale(1)',220); }
+      // compute center coords for ripple
+      try {
+        const svg = document.querySelector('svg.network');
+        const pt = svg.createSVGPoint();
+        const m = g.getCTM();
+        pt.x = 0; pt.y = 0;
+        const p = pt.matrixTransform(m);
+        BeltahEffects.rippleOnLink(p.x, p.y, svg);
+      } catch(e){}
+    }
     // simulate packet loss
     if (Math.random()*100 < packetLoss) {
       setTimeout(()=>{ term("Request timed out."); pushFeed("Packet lost -> " + node.id); }, 220 + rand(0,320));
-      // update spark & metrics with a spike
       pushSpark(node.base + rand(40,160));
       return;
     }
@@ -259,12 +557,12 @@ svg.network{width:100%;height:100%}
     const v = Number(val);
     if (isNaN(v) || v < 0 || v > 60) { term("loss value must be 0-60"); return; }
     packetLoss = v;
-    lossRange.value = v; lossVal.textContent = v + '%';
+    document.getElementById('lossRange').value = v; lossVal.textContent = v + '%';
     term("packet loss set to " + v + "%");
     pushFeed("Packet loss updated: " + v + "%");
   }
 
-  // ----- Input processing -----
+  // ----- Input processing (extended by commands.register) -----
   function process(input){
     const text = input.trim(); if(!text) return;
     term('> ' + text, 'cmd');
@@ -272,6 +570,7 @@ svg.network{width:100%;height:100%}
     const parts = text.split(/\s+/);
     const c = parts[0].toLowerCase();
     const arg = parts.slice(1).join(' ');
+    // built-in commands
     if (c === 'help') cmd_help();
     else if (c === 'scan') cmd_scan();
     else if (c === 'nodes') cmd_nodes();
@@ -279,7 +578,28 @@ svg.network{width:100%;height:100%}
     else if (c === 'clear') cmd_clear();
     else if (c === 'loss') cmd_loss(arg);
     else if (c === 'demo') runDemo();
-    else term("unknown: " + c);
+    else if (c === 'trace' || c === 'traceroute') {
+      if (typeof registerCommands === 'function') { registerCommands({ term, pushFeed, simPing, pushSpark, process }); process(''); registerCommands({ term, pushFeed, simPing, pushSpark, process }); }
+      // call the registered trace if available
+      if (window.BeltahCommands && BeltahCommands.trace) BeltahCommands.trace(arg);
+      else term('trace command unavailable');
+    }
+    else {
+      // pass to extended processor if registered
+      if (window.BeltahCommands && window.BeltahCommands.registered && window.BeltahCommands[arg]) {
+        // noop
+      }
+      // fallback: check registerCommands wrapping
+      if (typeof registerCommands === 'function') {
+        registerCommands({ term, pushFeed, simPing, pushSpark, process });
+        // If registerCommands replaced process, call it again
+        if (window.process !== process) {
+          window.process(text); // the wrapped process will handle extra commands
+          return;
+        }
+      }
+      term("unknown: " + c);
+    }
   }
 
   // ----- Buttons & keys -----
@@ -293,23 +613,18 @@ svg.network{width:100%;height:100%}
   // ----- Node interactions (click + drag) -----
   const groups = document.querySelectorAll('.nodeGroup');
   groups.forEach(g => {
-    // click -> ping
     g.addEventListener('click', (ev)=> {
       ev.preventDefault(); const id = g.dataset.id; simPing(id);
-      // brief scale
-      const c = g.querySelector('.node'); c.style.transform = 'scale(1.6)'; setTimeout(()=>c.style.transform='scale(1)',220);
+      const c = g.querySelector('.node'); if (c) { c.style.transform = 'scale(1.6)'; setTimeout(()=>c.style.transform='scale(1)',220); }
     });
-    // keyboard accessible
     g.addEventListener('keydown', (e)=>{ if (e.key==='Enter' || e.key===' ') { simPing(g.dataset.id); e.preventDefault(); } });
 
-    // draggable (pointer events)
     let dragging = false, sx=0, sy=0, tx=0, ty=0;
     const ondown = (ev) => {
       ev.preventDefault();
       dragging = true;
       const pt = ev.type.startsWith('touch') ? ev.touches[0] : ev;
       sx = pt.clientX; sy = pt.clientY;
-      // compute transform offset
       const t = g.getAttribute('transform') || 'translate(0,0)';
       const m = t.match(/translate\(([-\d.]+),\s*([-\d.]+)\)/);
       tx = m?Number(m[1]):0; ty = m?Number(m[2]):0;
@@ -327,7 +642,6 @@ svg.network{width:100%;height:100%}
     g.addEventListener('pointerdown', ondown);
     window.addEventListener('pointermove', onmove);
     window.addEventListener('pointerup', onup);
-    // touch support fallback
     g.addEventListener('touchstart', ondown);
     g.addEventListener('touchmove', onmove);
     g.addEventListener('touchend', onup);
@@ -366,19 +680,21 @@ svg.network{width:100%;height:100%}
   clearFeedBtn.addEventListener('click', ()=>{ feed.innerHTML=''; pushFeed('Feed cleared by user'); });
 
   // ----- Loss control -----
-  lossRange.addEventListener('input', ()=>{ packetLoss = Number(lossRange.value); lossVal.textContent = packetLoss + '%'; pushFeed('Packet loss: ' + packetLoss + '%'); });
+  const lossEl = document.getElementById('lossRange');
+  if (lossEl) {
+    lossEl.addEventListener('input', ()=>{ packetLoss = Number(lossEl.value); lossVal.textContent = packetLoss + '%'; pushFeed('Packet loss: ' + packetLoss + '%'); });
+  }
+  // fallback if not present
+  document.getElementById('lossRange')?.addEventListener?.('input', ()=>{});
 
   // ----- Metrics sim -----
   function updateMetrics(){
     const t = Date.now();
-    // smooth oscillations + random jitter
     const cpu = clamp(Math.round(20 + Math.abs(Math.sin(t/5200))*60 + rand(-6,6)), 4, 98);
     const mem = clamp(Math.round(26 + Math.abs(Math.cos(t/6800))*56 + rand(-8,6)), 6, 96);
     cpuBar.style.width = cpu + '%'; memBar.style.width = mem + '%';
     cpuTxt.textContent = cpu + '%'; memTxt.textContent = mem + '%';
-    // push small probabilistic feed
     if (Math.random() < 0.06) pushFeed(`Probe: CPU ${cpu}% MEM ${mem}%`);
-    // maintain small baseline spark
     pushSpark(30 + rand(0,60));
   }
 
@@ -401,12 +717,38 @@ svg.network{width:100%;height:100%}
   // minor accessibility: clicking out clears selection
   document.addEventListener('click', (e)=>{ if (e.target.id !== 'cmd') cmd.blur(); });
 
+  // expose start timestamp
+  window._beltahStart = Date.now();
+
+  // auto-register extra commands using the API glue
+  if (typeof registerCommands === 'function') {
+    try {
+      registerCommands({ term, pushFeed, simPing, pushSpark, process });
+    } catch(e) {
+      console.warn('registerCommands failed', e);
+      // try no-arg register
+      try { registerCommands(); } catch(e2) { console.warn('no-arg register failed', e2); }
+    }
+  }
+
+  // auto-hook effects
+  if (window.BeltahEffects && typeof window.BeltahEffects.hookAutoPulse === 'function') {
+    try { window.BeltahEffects.hookAutoPulse(); } catch(e){console.warn(e)}
+  }
+
+  // theme toggle helper
+  window.enableHackerMode = function() {
+    const s = document.getElementById('hacker-mode-css');
+    if (!s) return;
+    s.disabled = !s.disabled;
+    // small pulse on header to indicate change
+    const h = document.querySelector('.header');
+    if (h) { h.style.transition='box-shadow .4s'; h.style.boxShadow='0 0 18px rgba(255,255,255,0.04)'; setTimeout(()=>h.style.boxShadow='',450); }
+  };
+  toggleThemeBtn.addEventListener('click', ()=> { enableHackerMode(); pushFeed('Theme toggled'); });
+
 })();
 </script>
+
 </body>
 </html>
-<script>
-fetch('database.json').then(r=>r.json()).then(d=>{
-  window._BeltahDB = d;
-});
-</script>
