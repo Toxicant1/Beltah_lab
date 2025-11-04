@@ -1,0 +1,44 @@
+{
+  "nodes": {
+    "Kenya": {
+      "ip": "41.79.202.10",
+      "asn": "AS36992",
+      "isp": "Safaricom Ltd",
+      "city": "Nairobi",
+      "country": "Kenya",
+      "latency_profile": "low"
+    },
+    "Nigeria": {
+      "ip": "102.89.22.1",
+      "asn": "AS37282",
+      "isp": "MTN Nigeria",
+      "city": "Lagos",
+      "country": "Nigeria",
+      "latency_profile": "medium"
+    },
+    "South Africa": {
+      "ip": "196.25.3.4",
+      "asn": "AS37138",
+      "isp": "Telkom SA",
+      "city": "Johannesburg",
+      "country": "South Africa",
+      "latency_profile": "high"
+    },
+    "Egypt": {
+      "ip": "156.209.15.9",
+      "asn": "AS36930",
+      "isp": "TE Data",
+      "city": "Cairo",
+      "country": "Egypt",
+      "latency_profile": "medium"
+    },
+    "Morocco": {
+      "ip": "196.200.100.12",
+      "asn": "AS37564",
+      "isp": "Maroc Telecom",
+      "city": "Rabat",
+      "country": "Morocco",
+      "latency_profile": "high"
+    }
+  }
+}
