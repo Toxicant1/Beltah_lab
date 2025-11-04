@@ -2,106 +2,124 @@
    BELTAH CYBERLAB - Optimized UI
    ======================================= */
 
-:root {
-  --bg: #020202;
-  --neon: #0f0;
-  --accent: #ffd700;
-  --muted: rgba(0, 255, 65, 0.18);
-  --font: 'Courier New', monospace;
+:root{
+  --bg:#000;
+  --neon:#00ff41;
+  --accent:#ffcc00;
+  --muted:rgba(0,255,65,0.18);
+  --font:'Courier New', monospace;
+  --panel-bg: rgba(0,10,6,0.65);
+  --glass-blur: 6px;
 }
+
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;padding:0}
 
 /* Base layout */
-body {
-  background: var(--bg);
-  color: var(--neon);
-  font-family: var(--font);
-  min-height: 100vh;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+body{
+  background:var(--bg);
+  color:var(--neon);
+  font-family:var(--font);
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
 }
 
-/* Glitchy neon text */
-.glitch {
-  position: relative;
-  font-size: 1.4rem;
-  animation: glitch 1.5s infinite;
+/* CRT overlay */
+#scanlines,#vignette{
+  position:fixed;inset:0;pointer-events:none;z-index:800;
 }
-@keyframes glitch {
-  0% { text-shadow: 2px 2px #f00, -2px -2px #0ff; }
-  20% { text-shadow: -2px 0px #0ff, 2px 2px #f0f; }
-  40% { text-shadow: 2px -2px #0f0, -2px 0px #f00; }
-  60% { text-shadow: -2px 2px #ff0, 2px -2px #0ff; }
-  100% { text-shadow: 0 0 4px var(--accent); }
+#scanlines{
+  opacity:0.05;
+  background:repeating-linear-gradient(transparent,transparent 2px,rgba(0,255,65,0.08) 2px,rgba(0,255,65,0.08) 4px);
+}
+#vignette{background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,0.6) 100%)}
+
+/* Header */
+.top-bar{
+  display:flex;align-items:center;gap:10px;
+  background:rgba(0, 10, 0, 0.5);
+  padding:12px 14px;box-shadow:0 0 10px rgba(0,255,65,0.04);
+}
+.brand{color:var(--accent);font-weight:700;font-size:1.15rem}
+.subtitle{color:var(--muted);font-size:0.85rem}
+.controls{margin-left:auto;display:flex;gap:8px}
+
+/* Buttons */
+.btn{
+  background:linear-gradient(90deg,#00b37a,#00884f);
+  color:#020202;border:none;padding:8px 12px;border-radius:6px;font-weight:700;cursor:pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn.danger{background:#ff3333;color:#fff}
+.btn:active{transform:translateY(1px)}
+
+/* Grid layout */
+.wrap{
+  display:grid;flex:1;
+  grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+  gap:12px;padding:12px;align-items:stretch;
 }
 
-/* Slight neon glow using GPU acceleration */
-.panel {
-  border-radius: 10px;
-  background: rgba(0, 10, 6, 0.6);
-  backdrop-filter: blur(6px);
-  border: 1px solid rgba(0, 255, 65, 0.15);
-  filter: drop-shadow(0 0 5px rgba(0, 255, 65, 0.15));
+/* Panel base */
+.panel{
+  border-radius:10px;background:var(--panel-bg);
+  backdrop-filter:blur(var(--glass-blur));
+  border:1px solid rgba(0,255,65,0.08);padding:12px;display:flex;flex-direction:column;
+  min-height:120px;
+}
+.panel-title{font-weight:700;color:var(--accent);margin:6px 0 10px 0}
+
+/* Terminal */
+#terminal{
+  flex:1;background:rgba(0,0,0,0.25);border-radius:6px;padding:10px;overflow:auto;font-size:13px;
+  line-height:1.35;white-space:pre-wrap;
+}
+#terminal .line{margin:6px 0}
+#cmd{
+  border:none;background:rgba(0,0,0,0.45);color:var(--neon);padding:10px;border-radius:8px;margin-top:8px;
+  font-family:var(--font);font-size:0.95rem;width:100%;
+}
+#cmd:focus{outline:2px solid rgba(0,255,65,0.08);}
+
+/* Map */
+#map{flex:1;display:flex;align-items:center;justify-content:center}
+.network{width:100%;height:100%;max-height:320px}
+
+/* Nodes & links */
+.link{stroke:rgba(0,255,120,0.12);stroke-width:2;vector-effect:non-scaling-stroke}
+.node{fill:url(#pulse);cursor:pointer;transition:transform .18s ease,opacity .18s ease;will-change:transform,opacity}
+.node:hover{transform:scale(1.25)}
+.node-label{fill:var(--neon);font-size:11px}
+
+/* Stats */
+.stat{display:flex;align-items:center;justify-content:space-between;margin:8px 0}
+.bar{flex:1;background:rgba(255,255,255,0.05);height:10px;border-radius:8px;margin:0 10px;overflow:hidden}
+.bar i{display:block;height:100%;width:0%;background:linear-gradient(90deg,#00ff88,#00b384);transition:width .4s ease}
+
+/* Feed */
+#feed{flex:1;background:rgba(0,0,0,0.2);padding:8px;border-radius:6px;overflow:auto;font-size:13px;line-height:1.3}
+.feed-line{display:flex;gap:8px;align-items:flex-start;margin:6px 0}
+.feed-line .time{color:var(--muted);font-size:11px;min-width:56px}
+
+/* Chrome dots */
+.chrome{display:flex;gap:6px;margin-bottom:6px}
+.chrome .dot{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,0.06)}
+
+/* Small screens */
+@media (max-width:520px){
+  .brand{font-size:1rem}
+  .panel{padding:10px}
+  #cmd{padding:12px}
+  .network{max-height:240px}
 }
 
-/* Clean, responsive grid layout */
-.wrap {
-  display: grid;
-  flex: 1;
-  grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
-  gap: 12px;
-  padding: 10px;
+/* Reduce animations on low-power devices */
+@media (prefers-reduced-motion:reduce){
+  .node,.btn{transition:none}
+  .glitch{animation:none}
 }
 
-/* Better terminal input for mobile */
-#cmd {
-  border: 2px solid var(--neon);
-  background: rgba(0, 0, 0, 0.55);
-  font-size: 0.95rem;
-  padding: 10px;
-}
-#cmd:focus {
-  outline: none;
-  background: rgba(0, 0, 0, 0.7);
-}
-
-/* Hover-only node pulsing to save performance */
-.node {
-  fill: url(#pulse);
-  cursor: pointer;
-  transition: transform 0.2s, opacity 0.2s;
-}
-.node:hover {
-  transform: scale(1.2);
-  opacity: 1;
-}
-
-/* Animated scanlines removed on underpowered devices */
-@media (max-width: 600px) {
-  #scanlines {
-    display: none;
-  }
-}
-
-/* Badge-like stat bars */
-.bar {
-  height: 10px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.08);
-  overflow: hidden;
-}
-
-/* Bold active styling */
-.btn {
-  border-radius: 8px;
-  padding: 10px 16px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-.btn:hover {
-  background: var(--accent);
-  color: #000;
-  filter: drop-shadow(0px 0px 5px var(--accent));
-}
+/* tiny accessible focus */
+.nodeGroup:focus { outline: 2px dashed rgba(0,255,65,0.12) }
