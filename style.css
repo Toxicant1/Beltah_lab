@@ -1,11 +1,12 @@
 /* =======================================
-   BELTAH CYBERLAB - Africa Simulation UI
+   BELTAH CYBERLAB - Optimized UI
    ======================================= */
+
 :root {
-  --bg: #000;
-  --neon: #00ff41;
-  --accent: #ffcc00;
-  --muted: rgba(0,255,65,0.18);
+  --bg: #020202;
+  --neon: #0f0;
+  --accent: #ffd700;
+  --muted: rgba(0, 255, 65, 0.18);
   --font: 'Courier New', monospace;
 }
 
@@ -14,174 +15,93 @@ body {
   background: var(--bg);
   color: var(--neon);
   font-family: var(--font);
-  height: 100vh;
+  min-height: 100vh;
   margin: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
-/* CRT overlay */
-#scanlines, #vignette {
-  position: fixed; inset: 0; pointer-events: none; z-index: 1000;
+/* Glitchy neon text */
+.glitch {
+  position: relative;
+  font-size: 1.4rem;
+  animation: glitch 1.5s infinite;
 }
-#scanlines {
-  opacity: 0.05;
-  background: repeating-linear-gradient(transparent, transparent 2px, rgba(0,255,65,0.1) 2px, rgba(0,255,65,0.1) 4px);
-}
-#vignette {
-  background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.6) 100%);
-}
-
-/* Header */
-.top-bar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: rgba(0, 10, 0, 0.6);
-  padding: 12px 20px;
-  box-shadow: 0 0 10px var(--neon);
-}
-.brand {
-  color: var(--accent);
-  font-weight: bold;
-  font-size: 1.2rem;
-}
-.subtitle {
-  color: var(--muted);
-  font-size: 0.9rem;
-}
-.controls {
-  margin-left: auto;
-  display: flex;
-  gap: 8px;
-}
-.btn {
-  background: linear-gradient(90deg,#00b37a,#00884f);
-  color: black;
-  border: none;
-  padding: 8px 14px;
-  border-radius: 6px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.btn.danger {
-  background: #ff3333;
-  color: white;
+@keyframes glitch {
+  0% { text-shadow: 2px 2px #f00, -2px -2px #0ff; }
+  20% { text-shadow: -2px 0px #0ff, 2px 2px #f0f; }
+  40% { text-shadow: 2px -2px #0f0, -2px 0px #f00; }
+  60% { text-shadow: -2px 2px #ff0, 2px -2px #0ff; }
+  100% { text-shadow: 0 0 4px var(--accent); }
 }
 
-/* Main grid */
+/* Slight neon glow using GPU acceleration */
+.panel {
+  border-radius: 10px;
+  background: rgba(0, 10, 6, 0.6);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(0, 255, 65, 0.15);
+  filter: drop-shadow(0 0 5px rgba(0, 255, 65, 0.15));
+}
+
+/* Clean, responsive grid layout */
 .wrap {
   display: grid;
   flex: 1;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
   gap: 12px;
-  padding: 12px;
-}
-
-/* Panels */
-.panel {
-  border: 1px solid rgba(0,255,65,0.12);
-  border-radius: 10px;
-  background: rgba(0,10,6,0.7);
-  box-shadow: 0 0 10px rgba(0,255,65,0.1);
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-}
-.panel-title {
-  font-weight: 700;
-  color: var(--accent);
-  text-shadow: 0 0 5px var(--accent);
-  margin-bottom: 10px;
-}
-
-/* Terminal */
-#terminal {
-  flex: 1;
-  background: rgba(0,0,0,0.2);
-  border-radius: 6px;
   padding: 10px;
-  overflow-y: auto;
-  font-size: 13px;
-}
-#cmd {
-  border: none;
-  background: rgba(0,0,0,0.4);
-  color: var(--neon);
-  padding: 8px;
-  border-radius: 6px;
-  font-family: var(--font);
 }
 
-/* Map */
-#map {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+/* Better terminal input for mobile */
+#cmd {
+  border: 2px solid var(--neon);
+  background: rgba(0, 0, 0, 0.55);
+  font-size: 0.95rem;
+  padding: 10px;
 }
-.network {
-  width: 100%;
-  height: 100%;
+#cmd:focus {
+  outline: none;
+  background: rgba(0, 0, 0, 0.7);
 }
+
+/* Hover-only node pulsing to save performance */
 .node {
   fill: url(#pulse);
   cursor: pointer;
-  animation: pulse 2s infinite;
+  transition: transform 0.2s, opacity 0.2s;
 }
 .node:hover {
-  fill: #00ffcc;
-}
-.link {
-  stroke: rgba(0,255,120,0.2);
-  stroke-width: 2;
-}
-.node-label {
-  fill: var(--neon);
-  font-size: 12px;
+  transform: scale(1.2);
+  opacity: 1;
 }
 
-/* Stats */
-.stat {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin: 6px 0;
+/* Animated scanlines removed on underpowered devices */
+@media (max-width: 600px) {
+  #scanlines {
+    display: none;
+  }
 }
+
+/* Badge-like stat bars */
 .bar {
-  flex: 1;
-  background: rgba(255,255,255,0.05);
   height: 10px;
-  border-radius: 8px;
-  margin: 0 10px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
   overflow: hidden;
 }
-.bar i {
-  display: block;
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(90deg,#00ff88,#00b384);
-  transition: width 0.3s;
-}
 
-/* Log Feed */
-#feed {
-  flex: 1;
-  background: rgba(0,0,0,0.2);
-  padding: 10px;
-  font-size: 13px;
-  overflow-y: auto;
-  line-height: 1.3;
+/* Bold active styling */
+.btn {
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
-#feed .time {
-  color: var(--muted);
-  margin-right: 6px;
-}
-
-/* Animations */
-@keyframes pulse {
-  0%, 100% { r: 12; opacity: 0.8; }
-  50% { r: 15; opacity: 1; }
+.btn:hover {
+  background: var(--accent);
+  color: #000;
+  filter: drop-shadow(0px 0px 5px var(--accent));
 }
