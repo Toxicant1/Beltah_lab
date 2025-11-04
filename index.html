@@ -7,55 +7,86 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-  <!-- UX Overlays -->
   <div id="scanlines"></div>
   <div id="vignette"></div>
 
-  <!-- Header -->
   <header class="top-bar">
     <h1 class="brand glitch">BELTAH CYBERLAB</h1>
     <span class="subtitle">⟐ Africa Network Simulation ⟐</span>
     <div class="controls">
-      <button id="demoSeq" class="btn green">▶ Demo</button>
-      <button id="clearLogs" class="btn red">✖ Clear Logs</button>
+      <button id="demoSeq" class="btn">▶ Demo</button>
+      <button id="clearLogs" class="btn danger">✖ Clear Logs</button>
     </div>
   </header>
 
-  <!-- Layout -->
   <main class="wrap">
-
-    <!-- Terminal -->
     <section class="panel terminal">
       <div class="chrome"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
       <h2 class="panel-title">TERMINAL CONSOLE</h2>
-      <div id="terminal"></div>
-      <input id="cmd" type="text" autocomplete="off" placeholder="> Enter command (type help)" />
+      <div id="terminal" aria-live="polite"></div>
+      <input id="cmd" type="text" autocomplete="off" placeholder="> Type a command (help / scan / ping <node> / clear)" />
     </section>
 
-    <!-- Network Map -->
     <section class="panel map">
       <div class="chrome"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
       <h2 class="panel-title">AFRICA NETWORK MAP</h2>
-      <div id="map"></div>
+      <div id="map">
+        <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid meet" class="network" role="img">
+          <defs>
+            <radialGradient id="pulse" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#00ff88" stop-opacity="0.95"/>
+              <stop offset="100%" stop-color="#00ff88" stop-opacity="0.06"/>
+            </radialGradient>
+          </defs>
+
+          <!-- Links -->
+          <line class="link" x1="200" y1="220" x2="400" y2="220" />
+          <line class="link" x1="400" y1="220" x2="350" y2="340" />
+          <line class="link" x1="400" y1="220" x2="650" y2="120" />
+
+          <!-- Node groups -->
+          <g class="nodeGroup" data-id="Kenya" transform="translate(400,220)">
+            <circle class="node" r="12"></circle>
+            <text class="node-label" x="20" y="6">Kenya</text>
+          </g>
+
+          <g class="nodeGroup" data-id="Nigeria" transform="translate(200,220)">
+            <circle class="node" r="12"></circle>
+            <text class="node-label" x="20" y="6">Nigeria</text>
+          </g>
+
+          <g class="nodeGroup" data-id="South Africa" transform="translate(350,340)">
+            <circle class="node" r="12"></circle>
+            <text class="node-label" x="20" y="6">South Africa</text>
+          </g>
+
+          <g class="nodeGroup" data-id="Egypt" transform="translate(650,120)">
+            <circle class="node" r="12"></circle>
+            <text class="node-label" x="20" y="6">Egypt</text>
+          </g>
+
+          <g class="nodeGroup" data-id="Morocco" transform="translate(100,120)">
+            <circle class="node" r="10"></circle>
+            <text class="node-label" x="18" y="4">Morocco</text>
+          </g>
+
+        </svg>
+      </div>
     </section>
 
-    <!-- Stats -->
     <section class="panel stats">
       <div class="chrome"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
       <h2 class="panel-title">SYSTEM METRICS</h2>
       <div class="stat"><span>CPU</span><div class="bar"><i id="cpuBar"></i></div><span id="cpuVal">0%</span></div>
-      <div class="stat"><span>RAM</span><div class="bar"><i id="memBar"></i></div><span id="memVal">0%</span></div>
-      <div class="stat"><span>NET</span><div class="bar"><i id="netBar"></i></div><span id="netVal">0%</span></div>
+      <div class="stat"><span>MEMORY</span><div class="bar"><i id="memBar"></i></div><span id="memVal">0%</span></div>
+      <div class="stat"><span>NETWORK</span><div class="bar"><i id="netBar"></i></div><span id="netVal">0%</span></div>
     </section>
 
-    <!-- Live Logs -->
     <section class="panel logs">
       <div class="chrome"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
       <h2 class="panel-title">LIVE ACTIVITY FEED</h2>
-      <div id="feed"></div>
+      <div id="feed" aria-live="polite"></div>
     </section>
-
   </main>
 
   <script src="js/app.js" defer></script>
