@@ -1,0 +1,26 @@
+/* hacker-mode.css */
+/* dark purple + cyan cyberpunk variant */
+:root{
+  --bg:#07000f; --ink:#8ef0ff; --accent:#c58fff; --muted:rgba(142,240,255,0.12);
+  --glass: rgba(8,4,18,0.66); --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, "Courier New", monospace;
+}
+body { background: linear-gradient(180deg,#02000a,#0b0018 75%); color: var(--ink); }
+.header { background: linear-gradient(90deg, rgba(142,240,255,0.02), transparent); border-bottom-color: rgba(197,143,255,0.03); }
+.brand, .panel-title { color: var(--accent) !important; }
+.btn { border-color: rgba(142,240,255,0.06); background: rgba(0,16,20,0.45); color: var(--ink); }
+.panel { background: var(--glass); border-color: rgba(142,240,255,0.06); box-shadow: 0 8px 20px rgba(197,143,255,0.03); }
+.nodeLabel { fill: var(--ink); }
+.link { stroke: rgba(197,143,255,0.08) !important; }
+.feedTime { color: var(--muted) !important; }
+
+<script>
+function enableHackerMode(){
+  let l = document.getElementById('hackerModeCss');
+  if (!l) {
+    l = document.createElement('link'); l.id='hackerModeCss'; l.rel='stylesheet'; l.href='hacker-mode.css';
+    document.head.appendChild(l);
+  } else {
+    l.parentNode.removeChild(l);
+  }
+}
+</script>
