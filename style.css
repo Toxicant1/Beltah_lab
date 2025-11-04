@@ -1,125 +1,42 @@
-/* =======================================
-   BELTAH CYBERLAB - Optimized UI
-   ======================================= */
-
+/* ===== BELTAH — Single-file UI ===== */
 :root{
-  --bg:#000;
-  --neon:#00ff41;
-  --accent:#ffcc00;
-  --muted:rgba(0,255,65,0.18);
-  --font:'Courier New', monospace;
-  --panel-bg: rgba(0,10,6,0.65);
-  --glass-blur: 6px;
+  --bg:#030312; --ink:#00ff88; --accent:#ffd54a; --muted:rgba(0,255,136,0.12);
+  --glass: rgba(6,8,12,0.62); --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, "Courier New", monospace;
 }
-
 *{box-sizing:border-box}
-html,body{height:100%;margin:0;padding:0}
-
-/* Base layout */
-body{
-  background:var(--bg);
-  color:var(--neon);
-  font-family:var(--font);
-  min-height:100vh;
-  display:flex;
-  flex-direction:column;
-  overflow:hidden;
-}
-
-/* CRT overlay */
-#scanlines,#vignette{
-  position:fixed;inset:0;pointer-events:none;z-index:800;
-}
-#scanlines{
-  opacity:0.05;
-  background:repeating-linear-gradient(transparent,transparent 2px,rgba(0,255,65,0.08) 2px,rgba(0,255,65,0.08) 4px);
-}
-#vignette{background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,0.6) 100%)}
-
-/* Header */
-.top-bar{
-  display:flex;align-items:center;gap:10px;
-  background:rgba(0, 10, 0, 0.5);
-  padding:12px 14px;box-shadow:0 0 10px rgba(0,255,65,0.04);
-}
-.brand{color:var(--accent);font-weight:700;font-size:1.15rem}
-.subtitle{color:var(--muted);font-size:0.85rem}
+html,body{height:100%;margin:0;font-family:var(--mono);background:linear-gradient(180deg,#000,#071018 70%);color:var(--ink);-webkit-font-smoothing:antialiased}
+.header{display:flex;gap:12px;align-items:center;padding:12px 14px;background:linear-gradient(90deg,rgba(255,255,255,0.02),transparent);border-bottom:1px solid rgba(0,255,136,0.03)}
+.brand{font-weight:800;color:var(--accent);letter-spacing:1px;font-size:1.05rem}
+.hint{color:var(--muted);font-size:0.86rem;margin-left:6px}
 .controls{margin-left:auto;display:flex;gap:8px}
-
-/* Buttons */
-.btn{
-  background:linear-gradient(90deg,#00b37a,#00884f);
-  color:#020202;border:none;padding:8px 12px;border-radius:6px;font-weight:700;cursor:pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-.btn.danger{background:#ff3333;color:#fff}
+.btn{background:#001f14;border:1px solid rgba(0,255,136,0.06);padding:8px 12px;border-radius:8px;color:var(--ink);cursor:pointer;font-weight:700}
+.btn.warn{background:#2a0a0a;border-color:rgba(255,180,100,0.08);color:var(--accent)}
 .btn:active{transform:translateY(1px)}
-
-/* Grid layout */
-.wrap{
-  display:grid;flex:1;
-  grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
-  gap:12px;padding:12px;align-items:stretch;
-}
-
-/* Panel base */
-.panel{
-  border-radius:10px;background:var(--panel-bg);
-  backdrop-filter:blur(var(--glass-blur));
-  border:1px solid rgba(0,255,65,0.08);padding:12px;display:flex;flex-direction:column;
-  min-height:120px;
-}
-.panel-title{font-weight:700;color:var(--accent);margin:6px 0 10px 0}
-
-/* Terminal */
-#terminal{
-  flex:1;background:rgba(0,0,0,0.25);border-radius:6px;padding:10px;overflow:auto;font-size:13px;
-  line-height:1.35;white-space:pre-wrap;
-}
-#terminal .line{margin:6px 0}
-#cmd{
-  border:none;background:rgba(0,0,0,0.45);color:var(--neon);padding:10px;border-radius:8px;margin-top:8px;
-  font-family:var(--font);font-size:0.95rem;width:100%;
-}
-#cmd:focus{outline:2px solid rgba(0,255,65,0.08);}
-
-/* Map */
-#map{flex:1;display:flex;align-items:center;justify-content:center}
-.network{width:100%;height:100%;max-height:320px}
-
-/* Nodes & links */
-.link{stroke:rgba(0,255,120,0.12);stroke-width:2;vector-effect:non-scaling-stroke}
-.node{fill:url(#pulse);cursor:pointer;transition:transform .18s ease,opacity .18s ease;will-change:transform,opacity}
-.node:hover{transform:scale(1.25)}
-.node-label{fill:var(--neon);font-size:11px}
-
-/* Stats */
-.stat{display:flex;align-items:center;justify-content:space-between;margin:8px 0}
-.bar{flex:1;background:rgba(255,255,255,0.05);height:10px;border-radius:8px;margin:0 10px;overflow:hidden}
-.bar i{display:block;height:100%;width:0%;background:linear-gradient(90deg,#00ff88,#00b384);transition:width .4s ease}
-
-/* Feed */
-#feed{flex:1;background:rgba(0,0,0,0.2);padding:8px;border-radius:6px;overflow:auto;font-size:13px;line-height:1.3}
-.feed-line{display:flex;gap:8px;align-items:flex-start;margin:6px 0}
-.feed-line .time{color:var(--muted);font-size:11px;min-width:56px}
-
-/* Chrome dots */
-.chrome{display:flex;gap:6px;margin-bottom:6px}
-.chrome .dot{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,0.06)}
-
-/* Small screens */
-@media (max-width:520px){
-  .brand{font-size:1rem}
-  .panel{padding:10px}
-  #cmd{padding:12px}
-  .network{max-height:240px}
-}
-
-/* Reduce animations on low-power devices */
-@media (prefers-reduced-motion:reduce){
-  .node,.btn{transition:none}
-  .glitch{animation:none}
-}
-
-/* tiny accessible focus */
-.nodeGroup:focus { outline: 2px dashed rgba(0,255,65,0.12) }
+.layout{display:grid;grid-template-columns:1fr 420px;grid-template-rows:1fr;gap:12px;padding:12px;height:calc(100vh - 64px)}
+.left{display:flex;flex-direction:column;gap:12px}
+.panel{background:var(--glass);border-radius:10px;padding:10px;border:1px solid rgba(0,255,136,0.05);box-shadow:0 6px 18px rgba(0,0,0,0.45);display:flex;flex-direction:column;min-height:120px}
+.panel-title{color:var(--accent);font-weight:700;margin-bottom:8px}
+.terminal{flex:1;display:flex;flex-direction:column;gap:8px}
+#terminalOut{background:rgba(0,0,0,0.28);border-radius:8px;padding:10px;flex:1;overflow:auto;font-size:13px;line-height:1.35}
+.inputRow{display:flex;gap:8px;align-items:center}
+#cmd{flex:1;padding:10px;border-radius:8px;border:1px solid rgba(0,255,136,0.06);background:rgba(0,0,0,0.4);color:var(--ink)}
+.small{font-size:12px;color:var(--muted)}
+.mapWrap{height:350px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+svg.network{width:100%;height:100%}
+.nodeGroup{cursor:grab;touch-action:none}
+.node{fill: url(#pulse); transition:transform .14s ease, r .18s ease; transform-origin:center}
+.node:hover{transform:scale(1.2)}
+.nodeLabel{fill:var(--ink);font-size:11px}
+.link{stroke:rgba(0,255,136,0.12);stroke-width:2;vector-effect:non-scaling-stroke}
+.metrics{display:flex;gap:8px;margin-top:6px;align-items:center}
+.spark{width:100px;height:28px;background:rgba(0,0,0,0.16);border-radius:6px;padding:6px}
+.feed{flex:1;overflow:auto;background:rgba(0,0,0,0.14);padding:8px;border-radius:8px;font-size:13px}
+.feedLine{display:flex;gap:8px;align-items:flex-start;margin:6px 0}
+.feedTime{color:var(--muted);min-width:56px;font-size:12px}
+.controlsRow{display:flex;gap:8px;align-items:center;margin-top:8px}
+.toggle{display:inline-flex;align-items:center;gap:6px;padding:6px 8px;background:rgba(0,0,0,0.14);border-radius:8px;border:1px solid rgba(0,255,136,0.04)}
+.footer{padding:10px;font-size:12px;color:var(--muted);text-align:center}
+.badge{background:rgba(255,255,255,0.02);padding:4px 8px;border-radius:999px;border:1px solid rgba(255,255,255,0.02);font-weight:700;color:var(--accent)}
+@media (max-width:900px){.layout{grid-template-columns:1fr;grid-auto-rows:auto;height:auto}.mapWrap{height:260px}}
+/* reduce motion for battery */
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
