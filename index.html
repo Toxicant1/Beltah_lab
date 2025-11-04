@@ -405,3 +405,8 @@ svg.network{width:100%;height:100%}
 </script>
 </body>
 </html>
+<script>
+fetch('database.json').then(r=>r.json()).then(d=>{
+  window._BeltahDB = d;
+});
+</script>
