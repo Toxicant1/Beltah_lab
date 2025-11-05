@@ -3,146 +3,208 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>BELTAH — Terminal OS</title>
-<meta name="theme-color" content="#000000">
+<title>BELTAH — Terminal OS (CRT mode)</title>
+
+<!-- font (monospace hacker vibe) -->
+<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+
 <style>
-  /* Minimal hacker terminal style */
   :root{
-    --bg:#000;
-    --panel:#071018;
-    --neon:#00ff66;
-    --muted:rgba(0,255,102,0.12);
-    --accent:#ffd54a;
-    --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, "Courier New", monospace;
+    --bg:#020305;
+    --term-bg: linear-gradient(180deg, rgba(0,4,2,0.98), rgba(2,6,8,0.92));
+    --neon: #00ff88;
+    --muted: rgba(0,255,136,0.12);
+    --accent: #ffd54a;
+    --glass: rgba(5,8,10,0.46);
+    --mono: 'VT323', ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+    --realism-intensity: 0.28;
   }
-  html,body{height:100%;margin:0;background:radial-gradient(circle at 10% 10%, #001 0%, #000 60%);color:var(--neon);font-family:var(--mono);-webkit-font-smoothing:antialiased}
-  .app{display:flex;flex-direction:column;height:100vh;gap:8px}
-  .topbar{display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid rgba(0,255,102,0.04)}
-  .brand{font-weight:800;color:var(--accent);letter-spacing:1px}
-  .sub{color:var(--muted);font-size:13px}
-  .termWrap{flex:1;display:flex;overflow:hidden}
-  .terminal{flex:1;padding:14px;overflow:auto;white-space:pre-wrap;line-height:1.35}
-  .cmdline{display:flex;align-items:center;border-top:1px solid rgba(0,255,102,0.04);padding:10px}
-  .prompt{min-width:84px;color:var(--accent);font-weight:700}
-  .input{flex:1;background:transparent;border: none;outline:none;color:var(--neon);font-family:var(--mono);font-size:14px;padding:8px}
-  .btn{background:transparent;border:1px solid rgba(0,255,102,0.06);color:var(--neon);padding:6px 8px;border-radius:6px;margin-left:8px;cursor:pointer}
-  .muted{color:var(--muted);font-size:13px}
-  /* preview pane (hidden by default) */
-  .preview{width:48%;min-width:300px;background:#05070a;border-left:1px solid rgba(0,255,102,0.04);display:flex;flex-direction:column}
-  .previewHeader{padding:8px 10px;border-bottom:1px solid rgba(0,255,102,0.03);display:flex;align-items:center;gap:10px}
-  .previewTitle{color:var(--accent);font-weight:700}
-  .previewBody{flex:1;overflow:auto;padding:12px;font-family:monospace;font-size:13px;color:#bfffd6}
-  .iframeWrap{flex:1;border:0;background:#000}
-  .splitHidden{display:none}
-  /* log line styling */
-  .line-time{color:var(--muted);display:inline-block;width:86px}
-  .line-cmd{color:#9ef5c9}
-  .line-err{color:#ff9b9b}
-  .kbd{background:rgba(255,255,255,0.03);padding:2px 6px;border-radius:4px;border:1px solid rgba(255,255,255,0.02)}
-  /* small screens */
-  @media (max-width:900px){
-    .termWrap{flex-direction:column}
-    .preview{width:100%;min-height:220px}
+
+  /* Page */
+  html,body{height:100%;margin:0;background:#000;overflow:hidden;font-family:var(--mono);color:var(--neon);-webkit-font-smoothing:antialiased}
+  body{background:
+    radial-gradient(1200px 400px at 10% 10%, rgba(0,255,136,0.03), transparent 8%),
+    radial-gradient(1000px 300px at 90% 80%, rgba(255,213,74,0.01), transparent 12%),
+    linear-gradient(180deg,#000,#020911 70%);
   }
-  /* subtle scanlines */
-  .scanlines{position:fixed;left:0;right:0;top:0;bottom:0;pointer-events:none;mix-blend-mode:overlay;opacity:0.04;background-image:repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.12) 3px, rgba(0,0,0,0.12) 4px)}
+
+  /* Top bar */
+  .topbar{position:relative;z-index:6;display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(0,255,136,0.03);backdrop-filter: blur(2px)}
+  .brand{font-weight:800;color:var(--accent);letter-spacing:2px}
+  .sub{color:rgba(0,255,136,0.12);font-size:12px;margin-left:6px}
+  .muted{color:rgba(0,255,136,0.12);font-size:12px;margin-left:auto}
+
+  /* Shell layout */
+  .wrap{display:flex;height:calc(100vh - 56px);gap:12px;padding:18px;box-sizing:border-box}
+  .terminal{
+    flex:1; background:var(--term-bg); border-radius:12px; padding:18px; box-shadow:
+      0 8px 40px rgba(0,0,0,0.8),
+      0 0 40px rgba(0,255,136,0.03) inset;
+    border: 1px solid rgba(0,255,136,0.06);
+    position:relative; overflow:hidden;
+  }
+
+  /* CRT overlays */
+  .terminal::before{
+    content:""; position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(transparent, rgba(0,0,0,0.06));
+    mix-blend-mode:overlay;
+  }
+  .scanlines{position:absolute;inset:0;pointer-events:none;background-image:
+    repeating-linear-gradient(0deg, rgba(0,0,0,var(--realism-intensity)), rgba(0,0,0,var(--realism-intensity)) 2px, transparent 2px, transparent 4px);
+    opacity:0.85;mix-blend-mode: multiply}
+  .vignette{position:absolute;inset:0;pointer-events:none;box-shadow: inset 0 120px 220px rgba(0,0,0,0.6), inset 0 -120px 220px rgba(0,0,0,0.6) }
+
+  /* Glowing header inside terminal */
+  .term-header{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+  .term-title{color:var(--accent);font-weight:700;letter-spacing:1px}
+  .term-sub{color:rgba(0,255,136,0.12);font-size:12px}
+
+  /* Terminal output area */
+  .screen{height:calc(100% - 84px);overflow:auto;padding:8px 6px;border-radius:8px;background:rgba(0,0,0,0.06);backdrop-filter: blur(2px)}
+  .log-line{font-family:var(--mono);font-size:18px;line-height:1.18;white-space:pre-wrap;color:var(--neon);text-shadow: 0 0 8px rgba(0,255,136,0.06)}
+  .time{display:inline-block;color:rgba(0,255,136,0.12);width:92px;font-size:12px;margin-right:8px}
+  .cmdline{display:flex;align-items:center;gap:8px;padding-top:12px}
+
+  /* prompt + input */
+  .prompt{color:var(--accent);font-weight:700;min-width:120px}
+  .input{flex:1;background:transparent;border:1px solid rgba(0,255,136,0.04);padding:10px 12px;border-radius:8px;color:var(--neon);font-family:var(--mono);font-size:16px;outline:none;box-shadow:0 6px 18px rgba(0,0,0,0.6) inset}
+  .btn{background:transparent;border:1px solid rgba(0,255,136,0.06);color:var(--neon);padding:8px 10px;border-radius:8px;cursor:pointer}
+
+  /* preview pane */
+  .preview{width:420px;min-width:320px;background:linear-gradient(180deg, rgba(2,4,6,0.6), rgba(6,8,10,0.5));border-radius:12px;padding:12px;border:1px solid rgba(0,255,136,0.04);box-shadow:0 10px 40px rgba(0,0,0,0.7)}
+  .previewTitle{color:var(--accent);font-weight:700;margin-bottom:8px}
+  .previewBody{background:rgba(0,0,0,0.06);border-radius:8px;height:calc(100% - 44px);overflow:auto;padding:10px;font-family:var(--mono);font-size:14px;color:#c9ffd9}
+
+  /* small realism flicker */
+  @keyframes flicker {
+    0% {opacity:0.98} 5% {opacity:0.84} 7%{opacity:0.95} 10%{opacity:0.9} 100%{opacity:0.98}
+  }
+  .terminal.flicker { animation: flicker 3s linear infinite }
+
+  /* typewriter cursor (in screen) */
+  .typing-cursor { display:inline-block;width:10px;height:18px;background:var(--neon);margin-left:4px;vertical-align:middle;animation:blink 900ms steps(2,start) infinite;box-shadow:0 0 14px rgba(0,255,136,0.2) }
+  @keyframes blink{50%{opacity:0}}
+
+  /* mobile tweaks */
+  @media (max-width:920px){
+    .wrap{flex-direction:column;padding:12px}
+    .preview{width:100%;min-width:100%}
+    .screen{height:48vh}
+  }
 </style>
 </head>
 <body>
-<div class="app" role="application" aria-label="Beltah Terminal">
-  <div class="topbar">
-    <div class="brand">BELTAH OS</div>
-    <div class="sub">Full-terminal mode — type <span class="kbd">help</span></div>
-    <div style="margin-left:auto" class="muted">Termux & browser friendly</div>
-  </div>
 
-  <div class="termWrap">
-    <div class="terminal" id="terminal" aria-live="polite" role="log"></div>
+<!-- Top bar -->
+<div class="topbar">
+  <div class="brand">BELTAH OS</div>
+  <div class="sub">cyberlab live • termux-friendly</div>
+  <div class="muted">type <strong>help</strong></div>
+</div>
 
-    <div class="preview splitHidden" id="preview">
-      <div class="previewHeader">
-        <div class="previewTitle" id="previewTitle">Preview</div>
-        <div style="margin-left:auto">
-          <button class="btn" id="closePreview">Close</button>
-          <button class="btn" id="downloadPreview">Download</button>
-        </div>
-      </div>
-      <div class="previewBody" id="previewBody"><!-- file content or iframe goes here --></div>
+<!-- Main -->
+<div class="wrap">
+  <div class="terminal flicker" id="terminalBox" role="application" aria-label="Terminal">
+    <div class="scanlines" aria-hidden="true"></div>
+    <div class="vignette" aria-hidden="true"></div>
+
+    <div class="term-header">
+      <div class="term-title">BELTAH Terminal</div>
+      <div class="term-sub">realistic console simulation</div>
+    </div>
+
+    <div class="screen" id="screen" aria-live="polite"></div>
+
+    <div class="cmdline" style="margin-top:10px">
+      <div class="prompt">&gt; beltah</div>
+      <input id="cmd" class="input" placeholder="help / ls / fetch / open / cat / inject / style / download / clear" autocomplete="off" />
+      <button id="runBtn" class="btn">RUN</button>
     </div>
   </div>
 
-  <div class="cmdline" role="region" aria-label="Command line">
-    <div class="prompt">&gt; beltah</div>
-    <input id="cmd" class="input" autocomplete="off" spellcheck="false" inputmode="text" />
-    <button id="runBtn" class="btn">RUN</button>
+  <div class="preview" id="previewPane" aria-hidden="true" style="display:none">
+    <div class="previewTitle" id="previewTitle">Preview</div>
+    <div class="previewBody" id="previewBody"></div>
   </div>
 </div>
 
-<div class="scanlines" aria-hidden="true"></div>
-
 <script>
-(() => {
-  // Known project files to try to fetch
-  const knownFiles = [
-    'commands.js','effects.js','solarsystem.js','database.json',
-    'earthmap.html','hack_montage.html','style.css','hacker-mode.css','earthmap.js','earthmap.html'
-  ];
+/* ========== BELTAH — realistic terminal behavior ========== */
+/* Core: improved typewriter output, better UX, same fetch/fs features */
 
-  // Simple in-memory FS
+(async () => {
+  // known files (same as you had)
+  const knownFiles = ['commands.js','effects.js','solarsystem.js','database.json','earthmap.html','hack_montage.html','style.css','hacker-mode.css','earthmap.js','earthmap.html'];
+
+  // tiny in-memory FS
   window.BeltahFS = window.BeltahFS || { files: {} };
 
   // DOM
-  const term = document.getElementById('terminal');
+  const screen = document.getElementById('screen');
   const input = document.getElementById('cmd');
   const runBtn = document.getElementById('runBtn');
-  const preview = document.getElementById('preview');
+  const preview = document.getElementById('previewPane');
   const previewBody = document.getElementById('previewBody');
   const previewTitle = document.getElementById('previewTitle');
-  const closePreview = document.getElementById('closePreview');
-  const downloadPreview = document.getElementById('downloadPreview');
+  const terminalBox = document.getElementById('terminalBox');
 
-  // Terminal helpers
-  function time() { return new Date().toLocaleTimeString(); }
-  function writeLine(text, cls='') {
-    const d = document.createElement('div');
-    d.innerHTML = `<span class="line-time">${time()}</span> <span class="${cls}">${escapeHtml(text)}</span>`;
-    term.appendChild(d);
-    // keep scrollback limited
-    while (term.children.length > 1200) term.removeChild(term.firstChild);
-    term.scrollTop = term.scrollHeight;
+  // realism tuning
+  const TYPE_MIN = 6;  // ms per char minimal
+  const TYPE_MAX = 24; // ms per char maximal (randomized)
+  const LINES_PAUSE = 80; // pause between automatic lines
+
+  // printing helpers
+  function timeStamp() {
+    const d = new Date();
+    return d.toLocaleTimeString();
   }
-  function writeRaw(html) {
-    const d = document.createElement('div');
-    d.innerHTML = html;
-    term.appendChild(d);
-    while (term.children.length > 1200) term.removeChild(term.firstChild);
-    term.scrollTop = term.scrollHeight;
+
+  function appendRaw(html) {
+    const div = document.createElement('div');
+    div.className = 'log-line';
+    div.innerHTML = html;
+    screen.appendChild(div);
+    // keep scrollback sane
+    while (screen.children.length > 1200) screen.removeChild(screen.firstChild);
+    screen.scrollTop = screen.scrollHeight;
+    return div;
   }
-  function errorLine(text) { writeLine(text, 'line-err'); }
-  function infoLine(text) { writeLine(text, 'line-cmd'); }
 
-  function escapeHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  // type out a single line with typewriter effect
+  async function typeLine(text, opts = {}) {
+    const when = timeStamp();
+    const container = appendRaw(`<span class="time">${when}</span> <span class="line-cmd"></span>`);
+    const span = container.querySelector('.line-cmd');
+    // small chance to add glitchy characters for realism
+    const txt = String(text);
+    for (let i = 0; i < txt.length; i++) {
+      const c = txt[i];
+      span.textContent += c;
+      screen.scrollTop = screen.scrollHeight;
+      await sleep(random(TYPE_MIN, TYPE_MAX));
+    }
+    // tiny trailing pause
+    await sleep(28);
+    return container;
+  }
 
-  // Command history
-  let history = [], hpos = 0;
+  // instant line (no type)
+  function instantLine(text, cls='line-cmd') {
+    return appendRaw(`<span class="time">${timeStamp()}</span> <span class="${cls}">${escapeHtml(text)}</span>`);
+  }
 
-  // Quick boot text
-  writeRaw('<div style="color:#9ff5c9;font-weight:700">Beltah Terminal OS — full console mode</div>');
-  infoLine("Type 'help' for available commands. I will try fetching project files automatically.");
-  infoLine("If a file is not accessible, use 'fetch <filename>' to attempt retrieval.");
+  // quick utilities
+  function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function sleep(ms){ return new Promise(res=>setTimeout(res, ms)); }
+  function random(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
 
-  // Try to prefetch known files (non-blocking)
-  (function prefetchList(list){
-    list.forEach(f => {
-      fetchFile(f).then(ok=> {
-        if (ok) infoLine(`prefetched: ${f}`);
-      }).catch(()=>{/*ignore*/});
-    });
-  })(knownFiles);
+  // prefill small welcome quickly with type effect
+  await typeLine('Beltah Terminal • realistic sim • ready');
+  await typeLine("Type 'help' for commands. try: ping Kenya");
+  instantLine('Boot @ ' + new Date().toLocaleTimeString());
 
-  // ====================
-  // File fetch / helpers
-  // ====================
+  // fetch file helper (returns true if fetched)
   async function fetchFile(path) {
     try {
       const res = await fetch(path, {cache:'no-store'});
@@ -154,7 +216,6 @@
       window.BeltahFS.files[path] = { content: body, type: ct || mimeFromExt(path) };
       return true;
     } catch (err) {
-      // store failure marker
       return false;
     }
   }
@@ -163,204 +224,149 @@
     const ext = (name.split('.').pop()||'').toLowerCase();
     if (ext==='js') return 'application/javascript';
     if (ext==='css') return 'text/css';
-    if (ext==='html' || ext==='htm') return 'text/html';
+    if (ext==='html') return 'text/html';
     if (ext==='json') return 'application/json';
-    if (ext==='png') return 'image/png';
     return 'text/plain';
   }
 
-  function listFiles() {
-    // merged: knownFiles + fetched keys
-    const remoteKeys = Object.keys(window.BeltahFS.files);
-    const combined = Array.from(new Set(knownFiles.concat(remoteKeys)));
-    return combined;
-  }
-
-  // ====================
-  // Preview & injectors
-  // ====================
-  function showPreview(title, bodyHtml, isIframe=false) {
-    previewTitle.textContent = title;
-    preview.classList.remove('splitHidden');
-    if (isIframe) {
-      previewBody.innerHTML = '';
-      const iframe = document.createElement('iframe');
-      iframe.srcdoc = bodyHtml;
-      iframe.style.width = '100%';
-      iframe.style.height = '100%';
-      iframe.style.border = '0';
-      previewBody.appendChild(iframe);
-    } else {
-      // code block
-      previewBody.innerHTML = `<pre style="white-space:pre-wrap;font-family:monospace;font-size:13px">${escapeHtml(bodyHtml)}</pre>`;
-    }
-  }
-  function closePreviewPane() {
-    preview.classList.add('splitHidden');
-    previewBody.innerHTML = '';
-  }
-  closePreview.addEventListener('click', closePreviewPane);
-
-  downloadPreview.addEventListener('click', ()=> {
-    const title = previewTitle.textContent || 'download';
-    const f = window.BeltahFS.files[title] || null;
-    // if preview title is a filename and exists, download it; else download preview body text
-    if (f && (f.content !== undefined)) {
-      const data = (typeof f.content === 'object') ? JSON.stringify(f.content, null, 2) : String(f.content);
-      const blob = new Blob([data], {type: f.type || 'text/plain'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = title; a.click();
-      URL.revokeObjectURL(url);
-    } else {
-      // download previewBody text
-      const txt = previewBody.innerText || previewBody.textContent || '';
-      const blob = new Blob([txt], {type:'text/plain'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = `${title || 'beltah-preview'}.txt`; a.click();
-      URL.revokeObjectURL(url);
-    }
+  // prefetch common files but do not auto-execute (nonblocking)
+  knownFiles.forEach(f => {
+    fetchFile(f).then(ok => {
+      if (ok) instantLine('prefetched: ' + f);
+    }).catch(()=>{/*noop*/});
   });
 
-  // Execute script content (dangerous) — user confirms in terminal
-  function injectScriptText(jsText, filename = 'injected.js') {
+  // Preview helpers
+  function showPreview(title, body, isHtml=false) {
+    preview.style.display = 'block';
+    preview.setAttribute('aria-hidden','false');
+    previewTitle.textContent = title;
+    previewBody.innerHTML = isHtml ? body : `<pre style="white-space:pre-wrap">${escapeHtml(body)}</pre>`;
+  }
+  function hidePreview() {
+    preview.style.display = 'none';
+    preview.setAttribute('aria-hidden','true');
+    previewBody.innerHTML = '';
+  }
+
+  // injection helpers
+  function injectScriptText(jsText, filename='injected.js') {
     try {
       const s = document.createElement('script');
       s.type = 'module';
       s.textContent = jsText;
       document.body.appendChild(s);
-      infoLine(`Injected script: ${filename}`);
+      instantLine('Injected script: ' + filename);
       return true;
-    } catch (e) {
-      errorLine('Script injection failed: ' + e.message);
+    } catch(e) {
+      instantLine('Script injection failed: ' + e.message, 'line-err');
       return false;
     }
   }
-
-  // Apply CSS text inline
   function applyCssText(cssText, name='injected.css') {
     const s = document.createElement('style');
     s.setAttribute('data-source', name);
     s.textContent = cssText;
     document.head.appendChild(s);
-    infoLine(`Applied CSS: ${name}`);
+    instantLine('Applied CSS: ' + name);
   }
 
-  // ====================
-  // Commands
-  // ====================
-  function cmd_help() {
-    infoLine("available commands:");
-    writeRaw(`<div class="muted">ls</div> — list known files`);
-    writeRaw(`<div class="muted">fetch &lt;file&gt;</div> — fetch file into BeltahFS`);
-    writeRaw(`<div class="muted">cat &lt;file&gt;</div> — show raw content (if fetched)`);
-    writeRaw(`<div class="muted">open &lt;htmlfile&gt;</div> — preview an HTML file in split pane`);
-    writeRaw(`<div class="muted">inject &lt;script.js&gt;</div> — fetch and execute JS (TRUSTED files only)`);
-    writeRaw(`<div class="muted">style &lt;file.css&gt;</div> — fetch and apply CSS`);
-    writeRaw(`<div class="muted">download &lt;file&gt;</div> — download file to local device`);
-    writeRaw(`<div class="muted">theme hacker|normal</div> — toggle hacker palette`);
-    writeRaw(`<div class="muted">clear</div> — clear terminal`);
-  }
-
-  async function cmd_ls() {
-    const files = listFiles();
-    writeRaw(`<div class="muted">Known files (${files.length})</div>`);
-    files.forEach(f => {
-      const has = window.BeltahFS.files[f] ? '<span style="color:#9ef5c9">[cached]</span>' : '';
-      writeRaw(`<div>${escapeHtml(f)} ${has}</div>`);
+  // interactive prompt helper (for confirming risky ops)
+  function waitForOneInput() {
+    return new Promise(resolve => {
+      function onKey(e){
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const v = input.value;
+          input.value = '';
+          input.removeEventListener('keydown', onKey);
+          resolve(v);
+        }
+      }
+      input.addEventListener('keydown', onKey);
+      instantLine('Type response and press Enter');
+      input.focus();
     });
   }
 
-  async function cmd_fetch(args) {
-    const file = args.trim();
-    if (!file) { errorLine('usage: fetch <filename>'); return; }
-    infoLine('fetching ' + file + ' ...');
+  // Command implementations (same set as before)
+  function cmd_help() {
+    instantLine('commands: ls, fetch <file>, cat <file>, open <html>, inject <file.js>, style <file.css>, download <file>, theme hacker|normal, clear');
+  }
+  function cmd_ls() {
+    const files = Array.from(new Set( knownFiles.concat(Object.keys(window.BeltahFS.files)) ));
+    instantLine('Known files:');
+    files.forEach(f => {
+      const tag = window.BeltahFS.files[f] ? ' [cached]' : '';
+      instantLine('  ' + f + tag);
+    });
+  }
+  async function cmd_fetch(arg) {
+    const file = arg.trim();
+    if (!file) { instantLine('usage: fetch <file>'); return; }
+    instantLine('fetching ' + file + ' ...');
     const ok = await fetchFile(file);
-    if (ok) {
-      infoLine('fetched: ' + file);
-      // if it's CSS and we want auto-apply? leave to user
-    } else {
-      errorLine('failed to fetch: ' + file + ' (check path / CORS)');
-    }
+    if (ok) instantLine('fetched: ' + file);
+    else instantLine('failed to fetch: ' + file + ' (CORS / path?)', 'line-err');
   }
-
-  function cmd_cat(args) {
-    const file = args.trim();
-    if (!file) { errorLine('usage: cat <filename>'); return; }
+  function cmd_cat(arg) {
+    const file = arg.trim();
+    if (!file) { instantLine('usage: cat <file>'); return; }
     const f = window.BeltahFS.files[file];
-    if (!f) { errorLine('file not cached. run fetch ' + file); return; }
-    // pretty print JSON if possible
-    if (f.type && f.type.includes('application/json') && typeof f.content === 'object') {
-      showPreview(file, JSON.stringify(f.content, null, 2), false);
-    } else {
-      showPreview(file, (typeof f.content === 'object') ? JSON.stringify(f.content, null, 2) : String(f.content), false);
-    }
+    if (!f) { instantLine('file not cached. use fetch ' + file, 'line-err'); return; }
+    const s = (typeof f.content === 'object') ? JSON.stringify(f.content, null, 2) : String(f.content);
+    showPreview(file, s, false);
   }
-
-  function cmd_open(args) {
-    const file = args.trim();
-    if (!file) { errorLine('usage: open <htmlfile>'); return; }
-    const f = window.BeltahFS.files[file];
-    if (!f) {
-      // try fetch first
-      cmd_fetch(file).then(()=> {
-        const f2 = window.BeltahFS.files[file];
-        if (!f2) return errorLine('open failed: ' + file);
-        // if HTML, embed into iframe via srcdoc
-        if ((f2.type && f2.type.includes('text/html')) || file.endsWith('.html')) {
-          showPreview(file, (typeof f2.content === 'object') ? JSON.stringify(f2.content) : String(f2.content), true);
-        } else {
-          // show raw
-          showPreview(file, (typeof f2.content === 'object') ? JSON.stringify(f2.content,null,2) : String(f2.content), false);
-        }
-      });
-      return;
-    }
-    if ((f.type && f.type.includes('text/html')) || file.endsWith('.html')) {
-      showPreview(file, (typeof f.content === 'object') ? JSON.stringify(f.content) : String(f.content), true);
-    } else {
-      showPreview(file, (typeof f.content === 'object') ? JSON.stringify(f.content,null,2) : String(f.content), false);
-    }
-  }
-
-  async function cmd_inject(args) {
-    const file = args.trim();
-    if (!file) { errorLine('usage: inject <script.js>'); return; }
-    // confirm prompt via terminal
-    infoLine('WARNING: inject will execute remote JS in this page. Type YES to confirm.');
-    // simple blocking-like prompt (listen for next input)
-    const confirm = await waitForNextInput();
-    if (confirm.trim().toUpperCase() !== 'YES') {
-      infoLine('inject cancelled');
-      return;
-    }
-    // fetch if needed
+  async function cmd_open(arg) {
+    const file = arg.trim();
+    if (!file) { instantLine('usage: open <htmlfile>'); return; }
     if (!window.BeltahFS.files[file]) {
       const ok = await fetchFile(file);
-      if (!ok) return errorLine('failed to fetch ' + file);
+      if (!ok) { instantLine('open failed: ' + file, 'line-err'); return; }
+    }
+    const f = window.BeltahFS.files[file];
+    const doc = (typeof f.content === 'object') ? JSON.stringify(f.content) : String(f.content);
+    // open HTML as iframe via srcdoc
+    showPreview(file, doc, true);
+    previewBody.innerHTML = '';
+    const iframe = document.createElement('iframe');
+    iframe.srcdoc = doc;
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    iframe.style.border = '0';
+    previewBody.appendChild(iframe);
+  }
+  async function cmd_inject(arg) {
+    const file = arg.trim();
+    if (!file) { instantLine('usage: inject <script.js>'); return; }
+    instantLine('WARNING: inject executes code. Type YES to confirm.');
+    const conf = await waitForOneInput();
+    if (conf.trim().toUpperCase() !== 'YES') { instantLine('inject cancelled'); return; }
+    if (!window.BeltahFS.files[file]) {
+      const ok = await fetchFile(file);
+      if (!ok) { instantLine('failed to fetch ' + file, 'line-err'); return; }
     }
     const f = window.BeltahFS.files[file];
     const code = (typeof f.content === 'object') ? JSON.stringify(f.content) : String(f.content);
     injectScriptText(code, file);
   }
-
-  async function cmd_style(args) {
-    const file = args.trim();
-    if (!file) { errorLine('usage: style <file.css>'); return; }
+  async function cmd_style(arg) {
+    const file = arg.trim();
+    if (!file) { instantLine('usage: style <file.css>'); return; }
     if (!window.BeltahFS.files[file]) {
       const ok = await fetchFile(file);
-      if (!ok) return errorLine('failed to fetch ' + file);
+      if (!ok) { instantLine('failed to fetch ' + file, 'line-err'); return; }
     }
     const f = window.BeltahFS.files[file];
-    applyCssText(typeof f.content === 'object' ? JSON.stringify(f.content) : String(f.content), file);
+    const css = (typeof f.content === 'object') ? JSON.stringify(f.content) : String(f.content);
+    applyCssText(css, file);
   }
-
-  async function cmd_download(args) {
-    const file = args.trim();
-    if (!file) { errorLine('usage: download <file>'); return; }
-    // attempt to fetch if not cached
+  async function cmd_download(arg) {
+    const file = arg.trim();
+    if (!file) { instantLine('usage: download <file>'); return; }
     if (!window.BeltahFS.files[file]) {
       const ok = await fetchFile(file);
-      if (!ok) return errorLine('failed to fetch ' + file);
+      if (!ok) { instantLine('failed to fetch ' + file, 'line-err'); return; }
     }
     const f = window.BeltahFS.files[file];
     const data = (typeof f.content === 'object') ? JSON.stringify(f.content, null, 2) : String(f.content);
@@ -368,51 +374,21 @@
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = file; a.click();
     URL.revokeObjectURL(url);
-    infoLine('download initiated: ' + file);
+    instantLine('download started: ' + file);
+  }
+  function cmd_theme(arg) {
+    const c = arg.trim().toLowerCase();
+    if (c === 'hacker') { document.documentElement.style.setProperty('--neon', '#00ff88'); document.documentElement.style.setProperty('--accent','#ffd54a'); terminalBox.classList.add('flicker'); instantLine('hacker theme on'); }
+    else if (c === 'normal') { document.documentElement.style.setProperty('--neon', '#9ef5c9'); terminalBox.classList.remove('flicker'); instantLine('normal theme on'); }
+    else instantLine('usage: theme hacker|normal', 'line-err');
   }
 
-  function cmd_theme(args) {
-    const choice = args.trim().toLowerCase();
-    if (choice === 'hacker') {
-      document.documentElement.style.setProperty('--neon', '#00ff88');
-      document.documentElement.style.setProperty('--accent', '#ffd54a');
-      infoLine('hacker theme ON');
-    } else if (choice === 'normal') {
-      document.documentElement.style.setProperty('--neon', '#9ef5c9');
-      infoLine('normal theme ON');
-    } else {
-      errorLine('usage: theme hacker|normal');
-    }
-  }
-
-  // utility to wait for the next line typed by user, returns a Promise
-  function waitForNextInput() {
-    return new Promise(resolve => {
-      const handler = (val) => {
-        resolve(val);
-      };
-      // set a one-time temporary input listener
-      const onKey = (e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          const v = input.value;
-          input.value = '';
-          history.push(v);
-          hpos = history.length;
-          document.removeEventListener('keydown', onKey);
-          handler(v);
-        }
-      };
-      document.addEventListener('keydown', onKey);
-      infoLine('Type your response and press Enter:');
-    });
-  }
-
-  // Command dispatcher
-  async function handleCommand(line) {
-    const raw = line.trim();
+  // command dispatcher
+  async function dispatchCommand(line) {
+    const raw = (line||'').trim();
     if (!raw) return;
-    writeRaw(`<div><span class="line-time">${time()}</span> <span class="line-cmd">&gt; ${escapeHtml(raw)}</span></div>`);
+    // echo command instantly (like a terminal)
+    appendRaw(`<span class="time">${timeStamp()}</span> <span class="line-cmd">&gt; ${escapeHtml(raw)}</span>`);
     const parts = raw.split(/\s+/);
     const cmd = parts[0].toLowerCase();
     const args = parts.slice(1).join(' ');
@@ -421,61 +397,49 @@
       case 'ls': cmd_ls(); break;
       case 'fetch': await cmd_fetch(args); break;
       case 'cat': cmd_cat(args); break;
-      case 'open': cmd_open(args); break;
+      case 'open': await cmd_open(args); break;
       case 'inject': await cmd_inject(args); break;
       case 'style': await cmd_style(args); break;
       case 'download': await cmd_download(args); break;
       case 'theme': cmd_theme(args); break;
-      case 'clear': term.innerHTML=''; infoLine('screen cleared'); break;
-      case 'exit': infoLine('no-op in browser environment'); break;
+      case 'clear': screen.innerHTML=''; instantLine('screen cleared'); break;
       default:
-        errorLine('unknown command: ' + cmd + ' — type help');
+        instantLine('unknown: ' + cmd + ' — type help', 'line-err');
     }
   }
 
-  // Input handling
+  // handle input
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      const v = input.value;
+      const val = input.value;
       input.value = '';
-      history.push(v);
-      hpos = history.length;
-      handleCommand(v).catch(err => errorLine('cmd error: ' + err.message));
-    } else if (e.key === 'ArrowUp') {
-      if (history.length && hpos > 0) { hpos--; input.value = history[hpos] || ''; }
-      else if (history.length && hpos === history.length) { hpos = history.length - 1; input.value = history[hpos] || ''; }
-      e.preventDefault();
-    } else if (e.key === 'ArrowDown') {
-      if (history.length && hpos < history.length - 1) { hpos++; input.value = history[hpos] || ''; } else { hpos = history.length; input.value = ''; }
-      e.preventDefault();
+      dispatchCommand(val);
     }
   });
-
   runBtn.addEventListener('click', ()=> {
     const v = input.value;
     input.value = '';
-    history.push(v);
-    hpos = history.length;
-    handleCommand(v).catch(err => errorLine('cmd error: ' + err.message));
+    dispatchCommand(v);
   });
 
-  // Accessibility: allow clicking on terminal to focus input
-  term.addEventListener('click', ()=> input.focus());
+  // allow click to hide preview
+  screen.addEventListener('click', ()=> {
+    if (preview.style.display !== 'none') hidePreview();
+    input.focus();
+  });
 
-  // Expose a small API for other scripts (if they are injected)
+  // expose Beltah API if you want
   window.BeltahAPI = {
-    write: infoLine,
-    error: errorLine,
-    preview: showPreview,
-    fetchFile, // expose the fetch helper
-    files: window.BeltahFS.files
+    write: (s)=> instantLine(s),
+    fetchFile,
+    files: window.BeltahFS.files,
+    showPreview,
+    hidePreview
   };
-
-  // final focus
-  input.focus();
 
 })();
 </script>
+
 </body>
 </html>
