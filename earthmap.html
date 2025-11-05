@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Beltah CyberLab — Interactive Earth Map</title>
+
+  <!-- Leaflet CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+
+  <style>
+    /* Fullscreen Layout */
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: black;
+      font-family: monospace;
+      color: #00ff41;
+      overflow: hidden;
+    }
+
+    #map {
+      width: 100%;
+      height: 100vh;
+      position: relative;
+    }
+
+    /* Top bar with title */
+    .top-bar {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 5000;
+      background: rgba(0, 0, 0, 0.6);
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid #00ff41;
+      text-shadow: 0 0 5px #00ff41;
+    }
+
+    .top-bar h1 {
+      margin: 0;
+      font-size: 1.2rem;
+      color: #ffcc00;
+    }
+
+    .top-bar .subtitle {
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="map"></div>
+
+  <div class="top-bar">
+    <h1>BELTAH EARTH VIEW</h1>
+    <span class="subtitle">Live Global Map Interface (Satellite)</span>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    // Initialize the map
+    const map = L.map("map", {
+      center: [0, 20], // Africa-centered
+      zoom: 3,
+      zoomControl: true,
+      minZoom: 2,
+      maxZoom: 18,
+    });
+
+    // Esri Satellite imagery layer
+    const imagery = L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", 
+      {
+        attribution: "Tiles © Esri",
+      }
+    ).addTo(map);
+
+    // Dark label overlays (semi-transparent)
+    const labels = L.tileLayer(
+      "https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}.png",
+      {
+        attribution: "&copy; CARTO",
+        opacity: 0.6,
+      }
+    ).addTo(map);
+  </script>
+</body>
+</html>
