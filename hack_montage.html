@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Beltah — Hack Montage (Image + Video)</title>
+<style>
+  :root{
+    --bg:#030312; --neon:#00ff88; --accent:#ffd54a; --muted:rgba(0,255,136,0.12);
+    --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, "Courier New", monospace;
+  }
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,#000,#071018);font-family:var(--mono);color:var(--neon);display:flex;align-items:center;justify-content:center}
+  .wrapper{width:1100px;max-width:95vw;background:rgba(2,4,6,0.82);border-radius:12px;padding:18px;border:1px solid rgba(0,255,136,0.06);box-shadow:0 12px 40px rgba(0,0,0,0.6)}
+  header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  header h1{margin:0;color:var(--accent);font-size:1.1rem}
+  header p{margin:0;color:var(--muted);font-size:0.85rem}
+  .stage{display:flex;gap:12px}
+  .panel{flex:1;background:linear-gradient(180deg,rgba(0,0,0,0.25),rgba(0,0,0,0.12));border-radius:8px;padding:10px;position:relative;overflow:hidden;border:1px solid rgba(0,255,136,0.04)}
+  canvas{width:100%;height:480px;display:block;background:transparent}
+  .right{width:360px;display:flex;flex-direction:column;gap:10px}
+  .controls{display:flex;gap:8px;align-items:center}
+  button{background:#001f14;border:1px solid rgba(0,255,136,0.06);color:var(--neon);padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:700}
+  button.warn{background:#2a0a0a;color:var(--accent)}
+  .terminal{height:200px;overflow:auto;background:rgba(0,0,0,0.18);border-radius:6px;padding:8px;font-size:12px;line-height:1.25;color:#a8ffd6}
+  .glitch { position:absolute; inset:0; pointer-events:none; mix-blend-mode:overlay; opacity:0.6; }
+  .scanlines{position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(transparent,transparent 2px, rgba(0,255,136,0.03) 2px, rgba(0,255,136,0.03) 4px)}
+  .badge{display:inline-block;background:rgba(255,255,255,0.02);padding:4px 8px;border-radius:999px;border:1px solid rgba(255,255,255,0.02);font-weight:700;color:var(--accent)}
+  .meta{font-size:12px;color:var(--muted)}
+  @media (max-width:1100px){ .stage{flex-direction:column} .right{width:100%} canvas{height:360px} }
+</style>
+</head>
+<body>
+  <div class="wrapper" role="main">
+    <header>
+      <h1>BELTAH — Hack Montage</h1>
+      <p class="meta">Create a cyberpunk image and record a short looping clip — no external libs.</p>
+      <span style="margin-left:auto" class="badge">v1.0</span>
+    </header>
+
+    <div class="stage">
+      <div class="panel">
+        <!-- main canvas (composites everything) -->
+        <canvas id="stage" width="800" height="480" aria-label="Hack montage canvas"></canvas>
+
+        <!-- SVG hacker portrait (drawn to canvas each frame for sharpness) -->
+        <svg id="avatar" xmlns="http://www.w3.org/2000/svg" width="420" height="420" viewBox="0 0 420 420" style="display:none">
+          <defs>
+            <linearGradient id="g1" x1="0" x2="1">
+              <stop offset="0" stop-color="#00ff88"/>
+              <stop offset="1" stop-color="#00b384"/>
+            </linearGradient>
+            <filter id="f1">
+              <feGaussianBlur stdDeviation="1.2" result="b"/>
+              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <rect width="100%" height="100%" fill="transparent"/>
+          <g transform="translate(30,18)" filter="url(#f1)">
+            <rect x="0" y="0" width="360" height="360" rx="12" fill="#00110a"/>
+            <g transform="translate(22,20)">
+              <!-- Simple stylized hooded figure -->
+              <ellipse cx="140" cy="220" rx="120" ry="50" fill="url(#g1)" opacity="0.06"/>
+              <path d="M120 40 C150 10,220 10,248 40 L218 110 C200 140,140 140,122 110 Z" fill="#0a1710"/>
+              <rect x="122" y="114" width="96" height="60" rx="8" fill="#07100b"/>
+              <circle cx="170" cy="95" r="12" fill="#00ff88" opacity="0.95"/>
+              <path d="M60 200 Q140 80 260 200" stroke="#00ff88" stroke-width="2" fill="none" opacity="0.14"/>
+            </g>
+          </g>
+        </svg>
+
+        <!-- visual overlays -->
+        <div class="glitch" id="glitchOverlay" aria-hidden="true"></div>
+        <div class="scanlines" aria-hidden="true"></div>
+      </div>
+
+      <div class="right">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div class="controls">
+            <button id="snapBtn">📸 Snapshot</button>
+            <button id="recordBtn" class="warn">⏺ Record 5s</button>
+            <button id="downloadLast" disabled>⬇ Download</button>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <label class="meta">FPS</label>
+            <input id="fpsRange" type="range" min="12" max="60" value="30" style="flex:1" />
+            <div id="fpsVal" class="meta" style="width:40px;text-align:right">30</div>
+          </div>
+        </div>
+
+        <div>
+          <div class="panel-title" style="color:var(--accent);font-weight:700;margin-bottom:8px">Terminal Playback</div>
+          <div id="terminal" class="terminal" aria-live="polite"></div>
+        </div>
+
+        <div style="margin-top:auto;font-size:12px;color:var(--muted)">
+          <strong>Tips:</strong> Snapshot saves current frame. Record captures a 5s WebM of the canvas (browser must support MediaRecorder). For higher-quality exports, increase canvas size in code.
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ===== Hack Montage — Single-file animation + recorder ===== */
+(() => {
+  const canvas = document.getElementById('stage');
+  const ctx = canvas.getContext('2d', { alpha: true });
+  const avatarSVG = document.getElementById('avatar');
+  const terminalEl = document.getElementById('terminal');
+  const snapBtn = document.getElementById('snapBtn');
+  const recordBtn = document.getElementById('recordBtn');
+  const downloadBtn = document.getElementById('downloadLast');
+  const fpsRange = document.getElementById('fpsRange');
+  const fpsVal = document.getElementById('fpsVal');
+
+  let W = canvas.width, H = canvas.height;
+  let lastTime = 0;
+  let fps = Number(fpsRange.value);
+  fpsRange.addEventListener('input', ()=> { fps = Number(fpsRange.value); fpsVal.textContent = fps; });
+
+  // Matrix rain setup
+  const cols = Math.floor(W / 14);
+  let drops = new Array(cols).fill(0).map(()=> Math.random()*H);
+  function resize() {
+    // keep canvas resolution crisp (2x for sharper export)
+    const DPR = Math.min(window.devicePixelRatio || 1.5, 2);
+    canvas.width = Math.floor((canvas.clientWidth || 800) * DPR);
+    canvas.height = Math.floor((canvas.clientHeight || 480) * DPR);
+    canvas.style.width = canvas.clientWidth + 'px';
+    canvas.style.height = canvas.clientHeight + 'px';
+    W = canvas.width; H = canvas.height;
+  }
+  // call resize once
+  resize();
+  window.addEventListener('resize', () => { resize(); });
+
+  // draw avatar svg to an offscreen canvas for speed
+  const off = document.createElement('canvas');
+  const offCtx = off.getContext('2d');
+  function renderAvatar() {
+    // render SVG as image
+    const svgData = new XMLSerializer().serializeToString(avatarSVG);
+    const svgBlob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
+    const url = URL.createObjectURL(svgBlob);
+    const img = new Image();
+    img.onload = () => {
+      // offscreen size about 420x420 scaled by DPR
+      const DPR = Math.min(window.devicePixelRatio || 1.5, 2);
+      off.width = Math.floor(420 * DPR);
+      off.height = Math.floor(420 * DPR);
+      offCtx.clearRect(0,0,off.width, off.height);
+      offCtx.drawImage(img, 0, 0, off.width, off.height);
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  }
+  renderAvatar();
+
+  // terminal fake text sequence
+  const demoLines = [
+    "[init] booting BELTAH subsystem...",
+    "[net] scanning global nodes",
+    "→ nigeria: 102.89.22.1 • 84ms",
+    "→ kenya: 41.79.202.10 • 22ms",
+    "→ egypt: 156.209.15.9 • 92ms",
+    "[alert] packet-loss spike detected",
+    "[trace] routing anomaly — injecting synthetic jitter",
+    "[done] snapshot available"
+  ];
+  let termPos = 0;
+  function tickTerminal() {
+    if (termPos < demoLines.length) {
+      const d = document.createElement('div');
+      d.textContent = demoLines[termPos++];
+      terminalEl.appendChild(d);
+      terminalEl.scrollTop = terminalEl.scrollHeight;
+    } else {
+      // append random lines
+      if (Math.random() < 0.15) {
+        const d = document.createElement('div');
+        d.textContent = `[probe] cpu ${Math.floor(10+Math.random()*80)}% mem ${Math.floor(10+Math.random()*80)}%`;
+        terminalEl.appendChild(d);
+        terminalEl.scrollTop = terminalEl.scrollHeight;
+      }
+    }
+  }
+  setInterval(tickTerminal, 800);
+
+  // glitch overlay painter
+  function paintGlitchOverlay() {
+    const overlay = document.getElementById('glitchOverlay');
+    const w = overlay.clientWidth, h = overlay.clientHeight;
+    // create simple flicker bars as inline SVG background
+    const bars = [];
+    for (let i=0;i<6;i++){
+      const top = Math.floor(Math.random()*h);
+      const height = Math.floor(2 + Math.random()*12);
+      const left = Math.floor(Math.random()*w);
+      const width = Math.floor(40 + Math.random()* (w/2));
+      const color = (Math.random()<0.5) ? '#00ff88' : '#00b384';
+      bars.push(`<rect x="${left}" y="${top}" width="${width}" height="${height}" fill="${color}" opacity="${(Math.random()*0.12+0.02).toFixed(2)}"/>`);
+    }
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${h}'>${bars.join('')}</svg>`;
+    overlay.style.backgroundImage = `url('data:image/svg+xml;utf8,${encodeURIComponent(svg)}')`;
+  }
+  setInterval(paintGlitchOverlay, 300);
+
+  // draw frame
+  function drawFrame(now) {
+    requestAnimationFrame(drawFrame);
+    if (!lastTime) lastTime = now;
+    const elapsed = now - lastTime;
+    if (elapsed < (1000 / fps)) return;
+    lastTime = now;
+
+    // clear
+    ctx.clearRect(0,0,W,H);
+
+    // background vignette
+    const g = ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0, 'rgba(0,8,10,0.85)');
+    g.addColorStop(1, 'rgba(0,0,0,0.5)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0,0,W,H);
+
+    // draw matrix rain left area
+    const colsLocal = Math.floor(W / (40 * (window.devicePixelRatio || 1)));
+    const fontSize = Math.max(12, Math.floor(W/80));
+    ctx.font = `${fontSize}px monospace`;
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = 'rgba(0,255,136,0.06)';
+    ctx.fillRect(0,0, Math.floor(W*0.34), H);
+
+    // matrix chars
+    ctx.fillStyle = '#00ff88';
+    for (let i = 0; i < colsLocal; i++) {
+      const x = i * (fontSize * 0.7) + 8;
+      let y = Math.floor((drops[i] || Math.random()*H));
+      const text = String.fromCharCode(33 + Math.floor(Math.random()*94));
+      ctx.fillText(text, x, y);
+      drops[i] = (y > H && Math.random() > 0.975) ? 0 : y + fontSize * (0.8 + Math.random()*0.9);
+    }
+
+    // centered avatar (draw from offscreen if ready)
+    if (off.width) {
+      const avW = Math.floor(W*0.34);
+      const avH = Math.floor(avW * (off.height / off.width));
+      const ax = Math.floor(W*0.34 + 20);
+      const ay = Math.floor((H - avH)/2);
+      ctx.drawImage(off, 0, 0, off.width, off.height, ax, ay, avW, avH);
+      // subtle glow
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,255,136,0.25)';
+      ctx.shadowBlur = 20;
+      ctx.fillStyle = 'rgba(0,0,0,0)';
+      ctx.fillRect(ax-6, ay-6, avW+12, avH+12);
+      ctx.restore();
+    }
+
+    // right side animated scanning terminal box
+    const rx = Math.floor(W*0.72);
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.fillRect(rx, 24, Math.floor(W*0.25)-32, H - 48);
+    ctx.strokeStyle = 'rgba(0,255,136,0.06)';
+    ctx.strokeRect(rx, 24, Math.floor(W*0.25)-32, H - 48);
+
+    // terminal simulated lines (draw last few)
+    ctx.fillStyle = '#9ef5c9';
+    ctx.font = `${Math.max(12, Math.floor(W/110))}px monospace`;
+    const lines = Array.from(terminalEl.children).slice(-14).map(n=>n.textContent);
+    for (let i = 0; i < lines.length; i++) {
+      ctx.fillText(lines[i], rx + 8, 40 + i * (Math.floor(W/110)+6));
+    }
+
+    // edges: scanlines & vignette
+    ctx.fillStyle = 'rgba(0,0,0,0.06)';
+    for (let i=0;i<8;i++){
+      ctx.fillRect(0, H - i*6, W, 1);
+    }
+  }
+  requestAnimationFrame(drawFrame);
+
+  // Snapshot export
+  snapBtn.addEventListener('click', ()=> {
+    try {
+      const dataUrl = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = `beltah-montage-${Date.now()}.png`;
+      a.click();
+    } catch (e) {
+      alert('Snapshot failed: ' + e.message);
+    }
+  });
+
+  // MediaRecorder capture
+  let lastBlobUrl = null;
+  async function recordCanvas(duration = 5000) {
+    if (!('MediaRecorder' in window)) { alert('MediaRecorder not supported in this browser'); return null; }
+    const stream = canvas.captureStream(Math.min(60, fps)); // cap
+    const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';
+    const recorder = new MediaRecorder(stream, { mimeType: mime });
+    const chunks = [];
+    recorder.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+    recorder.start();
+    recordBtn.disabled = true;
+    recordBtn.textContent = '⏺ Recording...';
+    await new Promise(resolve => setTimeout(resolve, duration));
+    recorder.stop();
+    await new Promise(resolve => recorder.onstop = resolve);
+    recordBtn.disabled = false;
+    recordBtn.textContent = '⏺ Record 5s';
+    if (chunks.length === 0) return null;
+    const blob = new Blob(chunks, { type: mime });
+    if (lastBlobUrl) URL.revokeObjectURL(lastBlobUrl);
+    lastBlobUrl = URL.createObjectURL(blob);
+    downloadBtn.href = lastBlobUrl;
+    downloadBtn.download = `beltah-montage-${Date.now()}.webm`;
+    downloadBtn.disabled = false;
+    return lastBlobUrl;
+  }
+
+  recordBtn.addEventListener('click', async ()=> {
+    downloadBtn.disabled = true;
+    await recordCanvas(5000);
+    // auto-click download after recording finished (optional)
+  });
+
+  downloadBtn.addEventListener('click', ()=> {
+    // link already set
+  });
+
+  // initial small cooldown to render avatar properly
+  setTimeout(renderAvatar, 300);
+})();
+</script>
+</body>
+</html>
