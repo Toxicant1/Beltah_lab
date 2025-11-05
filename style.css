@@ -40,3 +40,10 @@ svg.network{width:100%;height:100%}
 @media (max-width:900px){.layout{grid-template-columns:1fr;grid-auto-rows:auto;height:auto}.mapWrap{height:260px}}
 /* reduce motion for battery */
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+#earth-map {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  width: 100vw;
+  height: 100vh;
+}
